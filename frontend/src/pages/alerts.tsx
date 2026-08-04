@@ -12,8 +12,11 @@ export default function AlertsPage() {
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
 
   React.useEffect(() => {
-    void apiGet<{ items: Alert[] }>("/api/alerts?status=all")
-      .then((d) => setAlerts(d.items))
+    void apiGet<Alert[] | { items: Alert[] }>("/api/alerts?status=all")
+      .then((d) => {
+        const items = Array.isArray(d) ? d : d.items;
+        setAlerts(items);
+      })
       .catch(() => {});
   }, []);
 
