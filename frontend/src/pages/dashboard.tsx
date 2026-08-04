@@ -45,13 +45,54 @@ export default function DashboardPage() {
   const [period, setPeriod] = React.useState<Period>("30j");
   const [data, setData] = React.useState<DashboardResponse | null>(null);
 
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
   React.useEffect(() => {
-    void apiGet<DashboardResponse>(
-      `/api/dashboard?period=${period}`
-    ).then(setData);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiGet<DashboardResponse>(`/api/dashboard?period=${period}`)
+      .then((d) => {
+        if (cancelled) return;
+        setData(d);
+        setLoading(false);
+      })
+      .catch(async () => {
+        if (cancelled) return;
+        try {
+          const [vehicles, alerts] = await Promise.all([
+            apiGet<any[]>("/api/vehicles").catch(() => []),
+            apiGet<any[]>("/api/alerts").catch(() => []),
+          ]);
+          const activeAlerts = alerts.filter((a) => a.status === "active");
+          const statusCounts: Record<string, number> = {};
+          vehicles.forEach((v) => {
+            statusCounts[v.status] = (statusCounts[v.status] || 0) + 1;
+          });
+          const fallback: DashboardResponse = {
+            total_vehicles: vehicles.length,
+            compliance_rate: Math.round((vehicles.filter((v) => v.status === "active").length / Math.max(vehicles.length, 1)) * 100),
+            active_alerts: activeAlerts.length,
+            pending_ocr: 0,
+            documents_count: 0,
+            status_distribution: Object.entries(statusCounts).map(([status, count]) => ({ status: status as any, count })),
+            compliance_by_type: [],
+            alerts_trend: [],
+            uploads_trend: [],
+            recent_alerts: activeAlerts.slice(0, 5) as Alert[],
+            recent_documents: [],
+          };
+          setData(fallback);
+        } catch {
+          setError("Impossible de charger le tableau de bord.");
+        }
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [period]);
 
-  if (!data) {
+  if (loading) {
     return (
       <div className="space-y-6">
         <div className="h-8 w-64 bg-muted rounded animate-pulse" />
@@ -64,6 +105,23 @@ export default function DashboardPage() {
           <div className="h-64 bg-muted rounded-xl animate-pulse" />
           <div className="h-64 bg-muted rounded-xl animate-pulse" />
         </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Tableau de bord</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Vue d'ensemble de la conformité de votre flotte.</p>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">{error || "Aucune donnée disponible."}</p>
+            <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>Réessayer</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
