@@ -18,10 +18,25 @@ const AuthContext = React.createContext<AuthContextValue | undefined>(
   undefined
 );
 
-interface MeResponse {
-  user?: User;
-  company?: Company;
-  access_token?: string;   // était: token?: string
+// The backend returns the User directly for /api/auth/me,
+// OR { user, company, access_token } for /api/auth/login.
+type MeResponse =
+  | User
+  | { user?: User; company?: Company; access_token?: string };
+
+function normalizeMe(data: MeResponse): {
+  user: User | null;
+  company: Company | null;
+  access_token?: string;
+} {
+  if ("user" in data || "access_token" in data || "company" in data) {
+    return {
+      user: (data as any).user ?? null,
+      company: (data as any).company ?? null,
+      access_token: (data as any).access_token,
+    };
+  }
+  return { user: data as User, company: null };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -33,8 +48,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refresh = React.useCallback(async () => {
     try {
       const data = await apiGet<MeResponse>("/api/auth/me");
-      setUser(data.user ?? null);
-      setCompany(data.company ?? null);
+      const { user: u, company: c } = normalizeMe(data);
+      setUser(u);
+      if (u && !c) {
+        try {
+          const comp = await apiGet<Company>("/api/settings/company");
+          setCompany(comp);
+        } catch { setCompany(null); }
+      } else { setCompany(c); }
     } catch {
       setUser(null);
       setCompany(null);
@@ -43,22 +64,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  React.useEffect(() => { void refresh(); }, [refresh]);
 
-  const login = React.useCallback(
-    async (email: string, password: string) => {
-      const data = await apiPost<MeResponse>("/api/auth/login", {
-        email,
-        password,
-      });
-      if (data.access_token) setToken(data.access_token);   // corrigé
-      setUser(data.user ?? null);
-      setCompany(data.company ?? null);
-    },
-    []
-  );
+  const login = React.useCallback(async (email: string, password: string) => {
+    const data = await apiPost<MeResponse>("/api/auth/login", { email, password });
+    const { user: u, company: c, access_token } = normalizeMe(data);
+    if (access_token) setToken(access_token);
+    setUser(u);
+    if (u && !c) {
+      try {
+        const comp = await apiGet<Company>("/api/settings/company");
+        setCompany(comp);
+      } catch { setCompany(null); }
+    } else { setCompany(c); }
+  }, []);
 
   const logout = React.useCallback(async () => {
     try {
@@ -126,24 +145,12 @@ export function can(
 ): boolean {
   if (!role) return false;
   const matrix: Record<UserRole, string[]> = {
-    admin: [
-      "vehicles.read",
-      "vehicles.write",
-      "documents.read",
-      "documents.write",
-      "settings.read",
-      "settings.write",
-      "users.manage",
-    ],
-    manager: [
-      "vehicles.read",
-      "vehicles.write",
-      "documents.read",
-      "documents.write",
-      "settings.read",
-    ],
+    admin: ["vehicles.read","vehicles.write","documents.read","documents.write","settings.read","settings.write","users.manage"],
+    manager: ["vehicles.read","vehicles.write","documents.read","documents.write","settings.read"],
+    fleet_manager: ["vehicles.read","vehicles.write","documents.read","documents.write","settings.read"],
     operator: ["documents.read", "documents.write", "vehicles.read"],
     viewer: ["vehicles.read", "documents.read", "settings.read"],
+    super_admin: ["vehicles.read","vehicles.write","documents.read","documents.write","settings.read","settings.write","users.manage"],
   };
   return matrix[role]?.includes(action) ?? false;
 }
