@@ -1,6 +1,6 @@
 // FleetDocs — Types partagés (frontend-only demo)
 
-export type UserRole = "admin" | "manager" | "operator" | "viewer";
+export type UserRole = "admin" | "manager" | "operator" | "viewer" | "fleet_manager" | "super_admin";
 
 export interface User {
   id: string;
@@ -30,12 +30,14 @@ export interface Company {
 }
 
 export type VehicleStatus =
+  | "active"
+  | "maintenance"
+  | "out_of_service"
   | "available"
   | "in_service"
   | "broken_down"
   | "in_garage"
-  | "immobilized"
-  | "out_of_service";
+  | "immobilized";
 
 export type ComplianceLevel = "green" | "orange" | "red";
 
@@ -49,12 +51,13 @@ export interface Vehicle {
   year: number;
   vin: string;
   status: VehicleStatus;
+  mileage?: number;
   mileage_km?: number;
   fuel_type?: string;
   color?: string;
   site?: string;
   driver?: string;
-  compliance: ComplianceLevel;
+  compliance?: ComplianceLevel;
   compliance_detail?: {
     valid: number;
     expiring: number;
@@ -67,10 +70,12 @@ export interface Vehicle {
 
 export type OcrStatus =
   | "pending_ocr"
+  | "completed"
   | "ocr_done"
   | "validated"
   | "rejected"
-  | "manual";
+  | "manual"
+  | "failed";
 
 export type DocumentValidity = "valid" | "expiring_30" | "expiring_60" | "expired" | "no_expiry";
 
@@ -96,6 +101,10 @@ export interface FleetDocument {
 }
 
 export type AlertType =
+  | "document_expiring"
+  | "document_expired"
+  | "ocr_failed"
+  | "compliance_issue"
   | "expiring_90"
   | "expiring_60"
   | "expiring_30"
