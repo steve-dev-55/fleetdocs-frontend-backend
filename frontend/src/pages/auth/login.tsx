@@ -19,7 +19,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [loading, setLoading] = React.useState(false);
   const [ssoLoading, setSsoLoading] = React.useState<"google" | "microsoft" | null>(null);
-  const [email, setEmail] = React.useState("marie.dupont@transport-dupont.fr");
+  const [email, setEmail] = React.useState("marie.dupont@transport-dupont.sn");
   const [password, setPassword] = React.useState("demo");
 
   async function onSubmit(e: React.FormEvent) {
