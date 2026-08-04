@@ -138,7 +138,7 @@ export default function VehicleDetailPage() {
                   {vehicle.registration}
                 </h1>
                 <ComplianceDot
-                  level={vehicle.compliance}
+                  level={vehicle.compliance ?? "green"}
                   detail={vehicle.compliance_detail}
                 />
                 <VehicleStatusBadge status={vehicle.status} />
