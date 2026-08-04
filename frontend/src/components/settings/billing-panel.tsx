@@ -24,10 +24,29 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
-const mockInvoices = [
-  { id: "in_001", number: "FLEET-2026-001", date: "2026-07-01", amount: 768000, status: "paid" as const, plan: "Pro" },
-  { id: "in_002", number: "FLEET-2026-002", date: "2026-06-01", amount: 768000, status: "paid" as const, plan: "Pro" },
-  { id: "in_003", number: "FLEET-2026-003", date: "2026-05-01", amount: 768000, status: "paid" as const, plan: "Pro" },
+import { apiGet } from "@/lib/api-client";
+
+interface BackendInvoice {
+  id: string;
+  date: string;
+  amount_fcfa: number;
+  status: string;
+  plan: string;
+  download_url?: string;
+}
+interface LocalInvoice {
+  id: string;
+  number: string;
+  date: string;
+  amount: number;
+  status: "paid" | "pending" | "failed";
+  plan: string;
+}
+
+const mockInvoices: LocalInvoice[] = [
+  { id: "in_001", number: "FLEET-2026-001", date: "2026-07-01", amount: 768000, status: "paid", plan: "Pro" },
+  { id: "in_002", number: "FLEET-2026-002", date: "2026-06-01", amount: 768000, status: "paid", plan: "Pro" },
+  { id: "in_003", number: "FLEET-2026-003", date: "2026-05-01", amount: 768000, status: "paid", plan: "Pro" },
 ];
 import { PLAN_LABELS } from "@/lib/status-config";
 import { formatFCFA, formatDate, downloadMockPdf } from "@/lib/utils";
@@ -66,9 +85,32 @@ export function BillingPanel() {
   const { toast } = useToast();
   const [upgradeOpen, setUpgradeOpen] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState<string>("pro");
+  const [invoices, setInvoices] = React.useState<LocalInvoice[]>(mockInvoices);
+  const [billingData, setBillingData] = React.useState<{
+    plan: string; status: string; max_vehicles: number; current_vehicles: number; amount_fcfa: number;
+  } | null>(null);
 
-  const usagePercent = company
-    ? Math.round((company.current_vehicles / company.max_vehicles) * 100)
+  React.useEffect(() => {
+    void apiGet<{
+      plan: string; status: string; max_vehicles: number; current_vehicles: number;
+      amount_fcfa: number; invoices?: BackendInvoice[];
+    }>("/api/settings/billing")
+      .then((d) => {
+        setBillingData(d);
+        if (d.invoices) {
+          setInvoices(d.invoices.map((inv) => ({
+            id: inv.id, number: inv.id, date: inv.date, amount: inv.amount_fcfa,
+            status: (inv.status === "paid" ? "paid" : "pending") as "paid" | "pending", plan: inv.plan,
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const usagePercent = billingData
+    ? Math.round((billingData.current_vehicles / billingData.max_vehicles) * 100)
+    : company
+    ? Math.round(((company.current_vehicles ?? 0) / company.max_vehicles) * 100)
     : 0;
 
   return (
