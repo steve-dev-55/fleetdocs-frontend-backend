@@ -21,7 +21,7 @@ const AuthContext = React.createContext<AuthContextValue | undefined>(
 interface MeResponse {
   user?: User;
   company?: Company;
-  token?: string;
+  access_token?: string;   // était: token?: string
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       });
-      if (data.token) setToken(data.token);
+      if (data.access_token) setToken(data.access_token);   // corrigé
       setUser(data.user ?? null);
       setCompany(data.company ?? null);
     },
