@@ -6,14 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { VehiclesTable } from "@/components/vehicles/vehicles-table";
 import { apiGet } from "@/lib/api-client";
+import type { Vehicle } from "@/lib/types";
 
 export default function VehiclesPage() {
   const [total, setTotal] = React.useState(0);
 
   React.useEffect(() => {
-    void apiGet<{ total: number }>("/api/vehicles").then((data) =>
-      setTotal(data.total)
-    );
+    void apiGet<Vehicle[] | { items: Vehicle[]; total: number }>("/api/vehicles")
+      .then((data) => {
+        if (Array.isArray(data)) setTotal(data.length);
+        else setTotal(data.total ?? data.items.length);
+      })
+      .catch(() => {});
   }, []);
 
   return (
