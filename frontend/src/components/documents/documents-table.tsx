@@ -75,8 +75,11 @@ export function DocumentsTable() {
 
   // Fetch documents on mount
   React.useEffect(() => {
-    void apiGet<{ items: FleetDocument[] }>("/api/documents")
-      .then((d) => setAllDocuments(d.items))
+    void apiGet<{ items: FleetDocument[] } | FleetDocument[]>("/api/documents")
+      .then((d) => {
+        const items = Array.isArray(d) ? d : d.items;
+        setAllDocuments(items);
+      })
       .catch((err) => {
         appToast.error("Erreur de chargement", {
           description: err instanceof Error ? err.message : undefined,
