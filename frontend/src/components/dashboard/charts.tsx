@@ -17,6 +17,8 @@ interface StatusDonutChartProps {
 }
 
 const STATUS_COLOR_HEX: Record<VehicleStatus, string> = {
+  active: "#16a34a",
+  maintenance: "#d97706",
   available: "#16a34a",
   in_service: "#2563eb",
   broken_down: "#dc2626",
