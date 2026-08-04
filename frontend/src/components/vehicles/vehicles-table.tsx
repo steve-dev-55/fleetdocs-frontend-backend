@@ -148,11 +148,14 @@ export function VehiclesTable() {
       params.set("status", effectiveFilters.status);
       params.set("type", effectiveFilters.type);
       params.set("compliance", effectiveFilters.compliance);
-      const data = await apiGet<{ items: Vehicle[]; total: number }>(
-        `/api/vehicles?${params.toString()}`
-      );
-      setVehicles(data.items);
-      setTotalCount(data.total);
+      const data = await apiGet<
+        | { items: Vehicle[]; total: number }
+        | Vehicle[]
+      >(`/api/vehicles?${params.toString()}`);
+      const items = Array.isArray(data) ? data : data.items;
+      const total = Array.isArray(data) ? data.length : data.total;
+      setVehicles(items);
+      setTotalCount(total);
     } catch (err) {
       appToast.error("Erreur de chargement", {
         description: err instanceof Error ? err.message : undefined,
@@ -567,7 +570,7 @@ export function VehiclesTable() {
                       {isVisible("compliance") && (
                         <TableCell>
                           <ComplianceDot
-                            level={v.compliance}
+                            level={v.compliance ?? "green"}
                             detail={v.compliance_detail}
                           />
                         </TableCell>
