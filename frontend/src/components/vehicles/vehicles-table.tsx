@@ -82,6 +82,12 @@ const COMPLIANCE_OPTIONS = [
   { value: "red", label: "Non conformes" },
 ];
 
+const FILTER_BADGE_CLASSES: Record<string, string> = {
+  green: "bg-accent-green/15 text-accent-green border border-accent-green/30",
+  orange: "bg-accent-amber/15 text-accent-amber border border-accent-amber/30",
+  red: "bg-accent-red/15 text-accent-red border border-accent-red/30",
+};
+
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const COLUMNS: ColumnDef[] = [
