@@ -150,10 +150,20 @@ export function VehiclesTable() {
       params.set("compliance", effectiveFilters.compliance);
       const data = await apiGet<
         | { items: Vehicle[]; total: number }
+        | { vehicles?: Vehicle[]; total?: number }
         | Vehicle[]
       >(`/api/vehicles?${params.toString()}`);
-      const items = Array.isArray(data) ? data : data.items;
-      const total = Array.isArray(data) ? data.length : data.total;
+      // Défensif : gère plusieurs formats possibles (tableau, {items}, {vehicles})
+      const items: Vehicle[] = Array.isArray(data)
+        ? data
+        : Array.isArray((data as any)?.items)
+        ? (data as any).items
+        : Array.isArray((data as any)?.vehicles)
+        ? (data as any).vehicles
+        : [];
+      const total = Array.isArray(data)
+        ? data.length
+        : (data as any)?.total ?? items.length;
       setVehicles(items);
       setTotalCount(total);
     } catch (err) {
@@ -223,11 +233,12 @@ export function VehiclesTable() {
       ptac_kg: v.ptac_kg,
       year: v.year,
       vin: v.vin,
-      status: VEHICLE_STATUS[v.status].label,
+      // Défensif : le backend peut renvoyer des statuts (sold, archived) absents du dict frontend
+      status: VEHICLE_STATUS[v.status]?.label ?? v.status,
       compliance: v.compliance,
       site: v.site ?? "",
       driver: v.driver ?? "",
-      created_at: v.created_at.split("T")[0],
+      created_at: v.created_at?.split?.("T")?.[0] ?? "",
     }));
     exportToCsv(`vehicules-${new Date().toISOString().split("T")[0]}.csv`, rows, [
       { key: "registration", label: "Immatriculation" },

@@ -59,6 +59,16 @@ export const VEHICLE_STATUS: Record<
     color: "dark-gray",
     description: "Véhicule retiré du parc",
   },
+  sold: {
+    label: "Vendu",
+    color: "gray",
+    description: "Véhicule vendu",
+  },
+  archived: {
+    label: "Archivé",
+    color: "dark-gray",
+    description: "Véhicule archivé (suppression logique)",
+  },
 };
 
 export const ALERT_TYPES: Record<AlertType, string> = {

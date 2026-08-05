@@ -25,6 +25,8 @@ const STATUS_COLOR_HEX: Record<VehicleStatus, string> = {
   in_garage: "#d97706",
   immobilized: "#6b7280",
   out_of_service: "#374151",
+  sold: "#9ca3af",
+  archived: "#4b5563",
 };
 
 export function StatusDonutChart({ data }: StatusDonutChartProps) {

@@ -37,7 +37,9 @@ export type VehicleStatus =
   | "in_service"
   | "broken_down"
   | "in_garage"
-  | "immobilized";
+  | "immobilized"
+  | "sold"
+  | "archived";
 
 export type ComplianceLevel = "green" | "orange" | "red";
 

@@ -65,8 +65,20 @@ export function AlertsTable() {
 
   const fetchAlerts = React.useCallback(async () => {
     try {
-      const data = await apiGet<{ items: Alert[] }>("/api/alerts?status=all");
-      setAllAlerts(data.items);
+      const data = await apiGet<
+        | { items: Alert[] }
+        | { alerts?: Alert[] }
+        | Alert[]
+      >("/api/alerts?status=all");
+      // Défensif : gère plusieurs formats (tableau, {items}, {alerts})
+      const items: Alert[] = Array.isArray(data)
+        ? data
+        : Array.isArray((data as any)?.items)
+        ? (data as any).items
+        : Array.isArray((data as any)?.alerts)
+        ? (data as any).alerts
+        : [];
+      setAllAlerts(items);
     } catch (err) {
       appToast.error("Erreur de chargement", {
         description: err instanceof Error ? err.message : undefined,
@@ -86,11 +98,14 @@ export function AlertsTable() {
   const filtered = React.useMemo(() => {
     const q = debouncedSearch.toLowerCase();
     return allAlerts.filter((a) => {
+      // Défensif : ignorer les alertes malformées
+      if (!a || !a.type || !a.message) return false;
+      const typeLabel = ALERT_TYPES[a.type] ?? a.type ?? "";
       if (
         q &&
-        !ALERT_TYPES[a.type].toLowerCase().includes(q) &&
+        !typeLabel.toLowerCase().includes(q) &&
         !(a.vehicle_registration ?? "").toLowerCase().includes(q) &&
-        !a.message.toLowerCase().includes(q)
+        !(a.message ?? "").toLowerCase().includes(q)
       ) {
         return false;
       }
@@ -123,7 +138,7 @@ export function AlertsTable() {
     exportToCsv(
       `alertes-${new Date().toISOString().split("T")[0]}.csv`,
       filtered.map((a) => ({
-        type: ALERT_TYPES[a.type],
+        type: ALERT_TYPES[a.type] ?? a.type,
         severity: a.severity,
         vehicle_registration: a.vehicle_registration ?? "",
         document_type: a.document_type ?? "",
@@ -252,7 +267,11 @@ export function AlertsTable() {
                 </TableRow>
               ) : (
                 filtered.map((a) => {
-                  const sev = ALERT_SEVERITY[a.type];
+                  // Défensif : fallbacks si type inconnu du dictionnaire
+                  const sev =
+                    ALERT_SEVERITY[a.type] ??
+                    ({ severity: "warning" as const, color: "gray" as const });
+                  const typeLabel = ALERT_TYPES[a.type] ?? a.type ?? "Alerte";
                   return (
                     <TableRow key={a.id}>
                       <TableCell className="pl-4">
@@ -264,7 +283,7 @@ export function AlertsTable() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge
-                          label={ALERT_TYPES[a.type]}
+                          label={typeLabel}
                           color={sev.color}
                           withDot
                         />
