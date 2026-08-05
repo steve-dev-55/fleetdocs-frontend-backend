@@ -7,18 +7,68 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
-import { Loader2, Save, Upload } from "lucide-react";
+import { Loader2, Save, Upload, X } from "lucide-react";
 
 export function CompanyForm() {
   const { company, updateCompany } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
+  const [logoLoading, setLogoLoading] = React.useState(false);
+  const [logoPreview, setLogoPreview] = React.useState<string | null>(company?.logo_url ?? null);
+  const [logoFile, setLogoFile] = React.useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [name, setName] = React.useState(company?.name ?? "");
   const [siret, setSiret] = React.useState(company?.siret ?? "");
   const [vat, setVat] = React.useState(company?.vat_number ?? "");
   const [address, setAddress] = React.useState(company?.address ?? "");
   const [postalCode, setPostalCode] = React.useState(company?.postal_code ?? "");
   const [city, setCity] = React.useState(company?.city ?? "");
+
+  function handleLogoClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!["image/png", "image/svg+xml", "image/jpeg", "image/webp"].includes(file.type)) {
+      toast({
+        title: "Format non supporté",
+        description: "Veuillez choisir une image PNG, SVG, JPEG ou WEBP.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate size (max 1 Mo)
+    if (file.size > 1024 * 1024) {
+      toast({
+        title: "Fichier trop volumineux",
+        description: "Le logo ne doit pas dépasser 1 Mo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create local preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    setLogoFile(file);
+  }
+
+  function handleRemoveLogo() {
+    setLogoPreview(null);
+    setLogoFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -127,17 +177,52 @@ export function CompanyForm() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
-            <div className="size-16 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold">
-              {(company?.name ?? "F")[0]}
+            <div className="size-16 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold overflow-hidden">
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo de l'entreprise" className="size-full object-cover" />
+              ) : (
+                (company?.name ?? "F")[0]
+              )}
             </div>
-            <div>
-              <Button type="button" variant="outline" size="sm">
-                <Upload className="size-4" />
-                Téléverser un logo
-              </Button>
-              <p className="mt-1 text-xs text-muted-foreground">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogoClick}
+                  disabled={logoLoading}
+                >
+                  {logoLoading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Upload className="size-4" />
+                  )}
+                  {logoPreview ? "Changer le logo" : "Téléverser un logo"}
+                </Button>
+                {logoPreview && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveLogo}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <X className="size-4" />
+                    Retirer
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
                 PNG, SVG · 512×512 max · 1 Mo max
               </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/svg+xml,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleLogoChange}
+              />
             </div>
           </div>
         </CardContent>
