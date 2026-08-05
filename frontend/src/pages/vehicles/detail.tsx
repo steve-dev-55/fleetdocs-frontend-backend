@@ -104,6 +104,17 @@ export default function VehicleDetailPage() {
     errorMessage: "Erreur lors du changement de statut",
   });
 
+  // Calcul des stats de conformité à partir des documents chargés
+  const docStats = React.useMemo(() => {
+    const valid = docs.filter((d) => d.validity === "valid").length;
+    const expiring = docs.filter((d) =>
+      ["expiring_30", "expiring_60", "expiring_soon"].includes(d.validity)
+    ).length;
+    const expired = docs.filter((d) => d.validity === "expired").length;
+    const total = docs.length;
+    return { valid, expiring, expired, total };
+  }, [docs]);
+
   if (!vehicle) {
     return (
       <div className="text-center py-12 text-muted-foreground">Chargement...</div>
@@ -175,33 +186,33 @@ export default function VehicleDetailPage() {
         <Card className="rounded-xl">
           <CardContent className="pt-5">
             <p className="text-xs text-muted-foreground">Documents valides</p>
-            <p className="mt-1 text-2xl font-bold text-green-600">
-              {vehicle.compliance_detail?.valid ?? 0}
-            </p>
+             <p className="mt-1 text-2xl font-bold text-green-600">
+               {docStats.valid}
+             </p>
           </CardContent>
         </Card>
         <Card className="rounded-xl">
           <CardContent className="pt-5">
             <p className="text-xs text-muted-foreground">À surveiller</p>
-            <p className="mt-1 text-2xl font-bold text-amber-600">
-              {vehicle.compliance_detail?.expiring ?? 0}
-            </p>
+             <p className="mt-1 text-2xl font-bold text-amber-600">
+               {docStats.expiring}
+             </p>
           </CardContent>
         </Card>
         <Card className="rounded-xl">
           <CardContent className="pt-5">
             <p className="text-xs text-muted-foreground">Expirés</p>
-            <p className="mt-1 text-2xl font-bold text-red-600">
-              {vehicle.compliance_detail?.expired ?? 0}
-            </p>
+             <p className="mt-1 text-2xl font-bold text-red-600">
+               {docStats.expired}
+             </p>
           </CardContent>
         </Card>
         <Card className="rounded-xl">
           <CardContent className="pt-5">
             <p className="text-xs text-muted-foreground">Total documents</p>
-            <p className="mt-1 text-2xl font-bold text-foreground">
-              {vehicle.compliance_detail?.total ?? 0}
-            </p>
+             <p className="mt-1 text-2xl font-bold text-foreground">
+               {docStats.total}
+             </p>
           </CardContent>
         </Card>
       </div>
