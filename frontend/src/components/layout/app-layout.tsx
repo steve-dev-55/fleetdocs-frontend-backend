@@ -72,7 +72,10 @@ export function AppLayout() {
         <AppSidebar />
         <SidebarInset>
           <AppHeader />
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background relative">
+            {/* Grid pattern overlay for depth */}
+            <div className="fixed inset-0 pointer-events-none opacity-[0.02] z-0" 
+                 style={{backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
             <AuthGate>
               <PageTransition>
                 <Outlet />

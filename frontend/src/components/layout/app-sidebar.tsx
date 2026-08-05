@@ -92,15 +92,15 @@ export function AppSidebar() {
   const isAdmin = user?.role === "admin";
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" className="border-r border-border/50 bg-surface/80 backdrop-blur-xl">
+      <SidebarHeader className="border-b border-border/50">
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-2">
               <SidebarMenuButton size="lg" asChild>
                 <Link to="/dashboard">
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
-                    F
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent-teal shadow-lg shadow-primary/20">
+                    <span className="font-bold text-white">F</span>
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">FleetDocs</span>
