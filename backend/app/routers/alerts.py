@@ -57,7 +57,7 @@ async def _enrich_alert(db: AsyncSession, alert: Alert) -> AlertResponse:
 @router.get("", response_model=List[AlertResponse])
 async def list_alerts(
     category: Optional[AlertCategory] = None,
-    status_filter: Optional[AlertStatus] = Query(None, alias="status"),
+    status_filter: Optional[str] = Query(None, alias="status"),
     type_filter: Optional[AlertType] = Query(None, alias="type"),
     severity: Optional[AlertSeverity] = None,
     vehicle_id: Optional[UUID] = None,
@@ -70,8 +70,17 @@ async def list_alerts(
 
     if category:
         query = query.where(Alert.category == category)
-    if status_filter:
-        query = query.where(Alert.status == status_filter)
+    # "all" (ou vide) signifie "pas de filtre" — évite l'erreur 422 quand le
+    # frontend envoie explicitement status=all pour dire "tous les statuts".
+    if status_filter and status_filter != "all":
+        try:
+            status_enum = AlertStatus(status_filter)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Statut invalide : {status_filter}",
+            )
+        query = query.where(Alert.status == status_enum)
     if type_filter:
         query = query.where(Alert.type == type_filter)
     if severity:
