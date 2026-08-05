@@ -51,12 +51,14 @@ export function UploadDialog({
       setDocumentTypeId(defaultDocumentTypeId ?? "");
       // Fetch vehicles and document types in parallel
       void Promise.all([
-        apiGet<{ items: Vehicle[] }>("/api/vehicles").then((d) =>
-          setVehicles(d.items)
-        ),
-        apiGet<{ items: DocumentType[] }>("/api/document-types").then((d) =>
-          setDocumentTypes(d.items)
-        ),
+        apiGet<{ items: Vehicle[] } | Vehicle[]>("/api/vehicles").then((d) => {
+          const items = Array.isArray(d) ? d : d.items ?? [];
+          setVehicles(items);
+        }),
+        apiGet<{ items: DocumentType[] } | DocumentType[]>("/api/document-types").then((d) => {
+          const items = Array.isArray(d) ? d : d.items ?? [];
+          setDocumentTypes(items);
+        }),
       ]).catch(() => {
         // ignore — empty selects will be shown
       });
