@@ -65,8 +65,9 @@ export function UploadDialog({
     }
   }, [open, defaultVehicleId, defaultDocumentTypeId]);
 
-  const vehicle = vehicles.find((v) => v.id === vehicleId);
-  const docType = documentTypes.find((d) => d.id === documentTypeId);
+  // Défensif : vehicles/documentTypes peuvent être undefined si l'API échoue
+  const vehicle = (vehicles ?? []).find((v) => v.id === vehicleId);
+  const docType = (documentTypes ?? []).find((d) => d.id === documentTypeId);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
