@@ -6,11 +6,12 @@ import os
 import secrets
 import urllib.parse
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_active_user
@@ -79,7 +80,7 @@ def _vehicle_to_response(
 @router.get("", response_model=List[VehicleResponse])
 async def list_vehicles(
     search: Optional[str] = Query(None, description="Recherche (immat, marque, modèle)"),
-    status_filter: Optional[VehicleStatus] = Query(None, alias="status"),
+    status_filter: Optional[str] = Query(None, alias="status"),
     vehicle_type_id: Optional[UUID] = None,
     pagination: PaginationParams = Depends(get_pagination_params),
     company: Company = Depends(get_current_company),
@@ -99,8 +100,17 @@ async def list_vehicles(
             )
         )
 
-    if status_filter:
-        query = query.where(Vehicle.status == status_filter)
+    # "all" (ou vide) signifie "pas de filtre" — évite l'erreur 422 quand le
+    # frontend envoie explicitement status=all pour dire "tous les statuts".
+    if status_filter and status_filter != "all":
+        try:
+            status_enum = VehicleStatus(status_filter)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Statut invalide : {status_filter}",
+            )
+        query = query.where(Vehicle.status == status_enum)
 
     if vehicle_type_id:
         query = query.where(Vehicle.vehicle_type_id == vehicle_type_id)
@@ -180,21 +190,27 @@ async def get_vehicle(
     db: AsyncSession = Depends(get_db),
 ):
     """Détail d'un véhicule avec documents et historique de statuts."""
-    vehicle = await _get_vehicle_or_404(db, vehicle_id, company.id)
-
-    docs_result = await db.execute(
-        select(Document)
-        .where(Document.vehicle_id == vehicle.id)
-        .order_by(Document.created_at.desc())
+    # On charge Vehicle.documents et Vehicle.status_history en eager-load ICI :
+    # VehicleDetailResponse.model_validate(vehicle) accède automatiquement à ces
+    # relations pour les champs "documents"/"status_history" du schéma, et un
+    # accès lazy sur une session async plante avec MissingGreenlet.
+    result = await db.execute(
+        select(Vehicle)
+        .options(
+            selectinload(Vehicle.documents).selectinload(Document.document_type),
+            selectinload(Vehicle.status_history),
+        )
+        .where(Vehicle.id == vehicle_id, Vehicle.company_id == company.id)
     )
-    documents = docs_result.scalars().all()
+    vehicle = result.scalar_one_or_none()
+    if not vehicle:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Véhicule introuvable.",
+        )
 
-    history_result = await db.execute(
-        select(VehicleStatusHistory)
-        .where(VehicleStatusHistory.vehicle_id == vehicle.id)
-        .order_by(VehicleStatusHistory.changed_at.desc())
-    )
-    history = history_result.scalars().all()
+    documents = sorted(vehicle.documents, key=lambda d: d.created_at, reverse=True)
+    history = sorted(vehicle.status_history, key=lambda h: h.changed_at, reverse=True)
 
     resp = VehicleDetailResponse.model_validate(vehicle)
     resp.documents = [DocumentResponse.model_validate(d) for d in documents]
@@ -371,8 +387,50 @@ async def get_vehicle_timeline(
 
 
 # ---------------------------------------------------------------------------
+# Champs personnalisés
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{vehicle_id}/custom-fields")
+async def get_vehicle_custom_fields(
+    vehicle_id: UUID,
+    company: Company = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retourne les champs personnalisés (JSONB) d'un véhicule."""
+    vehicle = await _get_vehicle_or_404(db, vehicle_id, company.id)
+    return vehicle.custom_fields or {}
+
+
+@router.put("/{vehicle_id}/custom-fields")
+async def update_vehicle_custom_fields(
+    vehicle_id: UUID,
+    payload: Dict[str, Any],
+    company: Company = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remplace les champs personnalisés (JSONB) d'un véhicule."""
+    vehicle = await _get_vehicle_or_404(db, vehicle_id, company.id)
+    vehicle.custom_fields = payload
+    await db.commit()
+    await db.refresh(vehicle)
+    return vehicle.custom_fields or {}
+
+
+# ---------------------------------------------------------------------------
 # Photo
 # ---------------------------------------------------------------------------
+
+
+@router.get("/{vehicle_id}/photo")
+async def get_vehicle_photo(
+    vehicle_id: UUID,
+    company: Company = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retourne l'URL de la photo courante d'un véhicule (ou null)."""
+    vehicle = await _get_vehicle_or_404(db, vehicle_id, company.id)
+    return {"photo_url": vehicle.photo_url}
 
 
 @router.post("/{vehicle_id}/photo", response_model=VehicleResponse)
