@@ -155,3 +155,33 @@ export function initials(first?: string, last?: string): string {
   const l = last?.[0]?.toUpperCase() ?? "";
   return (f + l) || "U";
 }
+
+/**
+ * Normalise une réponse document du backend vers le type frontend FleetDocument.
+ */
+export function normalizeDocument(raw: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...raw,
+    validity: raw.validity ?? raw.validity_status,
+    size: raw.size ?? raw.file_size,
+    confidence: raw.confidence ?? raw.ocr_confidence,
+    type: raw.type ?? raw.type_name,
+    type_id: raw.type_id ?? raw.document_type_id,
+    created_by: raw.created_by ?? raw.uploaded_by_id ?? "",
+    mime_type: raw.mime_type ?? "",
+    ocr_status: raw.ocr_status ?? "manual",
+    created_at: raw.created_at ?? raw.uploaded_at ?? new Date().toISOString(),
+  };
+}
+
+/** Applique normalizeDocument sur une liste (ou { items: [...] }). */
+export function normalizeDocuments(data: unknown): Record<string, unknown>[] {
+  const list: unknown[] = Array.isArray(data)
+    ? data
+    : Array.isArray((data as { items?: unknown })?.items)
+    ? (data as { items: unknown[] }).items
+    : Array.isArray((data as { documents?: unknown })?.documents)
+    ? (data as { documents: unknown[] }).documents
+    : [];
+  return list.map((d) => normalizeDocument(d as Record<string, unknown>));
+}

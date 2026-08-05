@@ -31,7 +31,7 @@ import {
   OCR_STATUS,
   DOCUMENT_VALIDITY,
 } from "@/lib/status-config";
-import { exportToCsv, formatDate, formatFileSize, formatRelative } from "@/lib/utils";
+import { exportToCsv, formatDate, formatFileSize, formatRelative, normalizeDocuments } from "@/lib/utils";
 import { apiGet } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import type { OcrStatus, DocumentValidity, FleetDocument } from "@/lib/types";
@@ -73,21 +73,10 @@ export function DocumentsTable() {
 
   // Fetch documents on mount
   React.useEffect(() => {
-    void apiGet<
-      | { items: FleetDocument[] }
-      | { documents?: FleetDocument[] }
-      | FleetDocument[]
-    >("/api/documents")
+    void apiGet("/api/documents")
       .then((d) => {
-        // Défensif : gère plusieurs formats (tableau, {items}, {documents})
-        const items: FleetDocument[] = Array.isArray(d)
-          ? d
-          : Array.isArray((d as any)?.items)
-          ? (d as any).items
-          : Array.isArray((d as any)?.documents)
-          ? (d as any).documents
-          : [];
-        setAllDocuments(items);
+        // Normalise validity_status → validity, file_size → size, etc.
+        setAllDocuments(normalizeDocuments(d) as unknown as FleetDocument[]);
       })
       .catch((err) => {
         appToast.error("Erreur de chargement", {
