@@ -188,11 +188,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight font-display">
             Tableau de bord
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -200,16 +200,16 @@ export default function DashboardPage() {
           </p>
         </div>
         {/* Period selector */}
-        <div className="inline-flex items-center rounded-md border border-border bg-card p-0.5">
+        <div className="inline-flex items-center rounded-lg border border-border bg-surface p-1">
           {(["30j", "90j", "12m"] as const).map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+              className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${
                 period === p
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
               }`}
             >
               {p === "12m" ? "12 mois" : p}
@@ -219,7 +219,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4" data-tour="kpi-cards">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 stagger-children" data-tour="kpi-cards">
         <KpiCard
           label="Véhicules"
           value={data.total_vehicles}
