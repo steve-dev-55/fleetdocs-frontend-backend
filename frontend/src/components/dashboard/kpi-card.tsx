@@ -34,65 +34,62 @@ export function KpiCard({
 }: KpiCardProps) {
   const a = accentClasses[accent];
   return (
-    <Card className="rounded-xl shadow-sm">
-      <CardContent className="pt-5">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {label}
-            </p>
-            <p className="mt-2 text-3xl font-bold text-foreground tracking-tight">
-              {value}
-              {unit && (
-                <span className="ml-1 text-base font-medium text-muted-foreground">
-                  {unit}
-                </span>
-              )}
-            </p>
-            {description && (
-              <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+    <div className="kpi-card group" style={{ '--accent-color': `var(--accent-${accent})` } as React.CSSProperties}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider font-display">
+            {label}
+          </p>
+          <p className="mt-2 text-4xl font-bold text-foreground tracking-tight font-mono">
+            {value}
+            {unit && (
+              <span className="ml-1.5 text-lg font-medium text-muted-foreground">
+                {unit}
+              </span>
             )}
-            {trend && (
-              <div className="mt-3 inline-flex items-center gap-1 text-xs">
-                {trend.direction === "up" ? (
-                  <ArrowUp
-                    className={cn(
-                      "size-3",
-                      trend.positive ? "text-green-600" : "text-red-600"
-                    )}
-                  />
-                ) : (
-                  <ArrowDown
-                    className={cn(
-                      "size-3",
-                      trend.positive ? "text-green-600" : "text-red-600"
-                    )}
-                  />
-                )}
-                <span
-                  className={
-                    trend.positive ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  {trend.value}%
-                </span>
-                <span className="text-muted-foreground">vs mois dernier</span>
-              </div>
-            )}
-          </div>
-          {Icon && (
-            <div
-              className={cn(
-                "size-10 rounded-lg flex items-center justify-center shrink-0",
-                a.bg,
-                a.text
+          </p>
+          {description && (
+            <p className="mt-1.5 text-xs text-muted-foreground">{description}</p>
+          )}
+          {trend && (
+            <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium">
+              {trend.direction === "up" ? (
+                <ArrowUp
+                  className={cn(
+                    "size-3.5",
+                    trend.positive ? "text-accent-green" : "text-accent-red"
+                  )}
+                />
+              ) : (
+                <ArrowDown
+                  className={cn(
+                    "size-3.5",
+                    trend.positive ? "text-accent-green" : "text-accent-red"
+                  )}
+                />
               )}
-            >
-              <Icon className="size-5" />
+              <span
+                className={
+                  trend.positive ? "text-accent-green" : "text-accent-red"
+                }
+              >
+                {trend.value}%
+              </span>
+              <span className="text-muted-foreground font-normal">vs mois dernier</span>
             </div>
           )}
         </div>
-      </CardContent>
-    </Card>
+        {Icon && (
+          <div
+            className={cn(
+              "kpi-card__icon",
+              a.text
+            )}
+          >
+            <Icon className="size-6 relative z-10" />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
