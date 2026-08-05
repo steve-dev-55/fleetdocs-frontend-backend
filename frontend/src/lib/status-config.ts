@@ -111,6 +111,7 @@ export const OCR_STATUS: Record<
   { label: string; color: ColorKey }
 > = {
   pending_ocr: { label: "OCR en cours", color: "amber" },
+  processing: { label: "Traitement en cours", color: "amber" },
   completed: { label: "OCR terminé", color: "blue" },
   ocr_done: { label: "OCR terminé", color: "blue" },
   validated: { label: "Validé", color: "green" },
@@ -126,8 +127,10 @@ export const DOCUMENT_VALIDITY: Record<
   valid: { label: "Valide", color: "green" },
   expiring_30: { label: "Expire < 30 jours", color: "amber" },
   expiring_60: { label: "Expire < 60 jours", color: "blue" },
+  expiring_soon: { label: "Expire bientôt", color: "amber" },
   expired: { label: "Expiré", color: "red" },
   no_expiry: { label: "Sans échéance", color: "gray" },
+  unknown: { label: "Inconnue", color: "gray" },
 };
 
 export const COMPLIANCE_LEVEL: Record<

@@ -73,9 +73,20 @@ export function DocumentsTable() {
 
   // Fetch documents on mount
   React.useEffect(() => {
-    void apiGet<{ items: FleetDocument[] } | FleetDocument[]>("/api/documents")
+    void apiGet<
+      | { items: FleetDocument[] }
+      | { documents?: FleetDocument[] }
+      | FleetDocument[]
+    >("/api/documents")
       .then((d) => {
-        const items = Array.isArray(d) ? d : d.items;
+        // Défensif : gère plusieurs formats (tableau, {items}, {documents})
+        const items: FleetDocument[] = Array.isArray(d)
+          ? d
+          : Array.isArray((d as any)?.items)
+          ? (d as any).items
+          : Array.isArray((d as any)?.documents)
+          ? (d as any).documents
+          : [];
         setAllDocuments(items);
       })
       .catch((err) => {
@@ -94,11 +105,13 @@ export function DocumentsTable() {
   const filtered = React.useMemo(() => {
     const q = debouncedSearch.toLowerCase();
     return allDocuments.filter((d) => {
+      // Défensif : ignorer les documents malformés
+      if (!d || !d.id) return false;
       if (
         q &&
-        !d.file_name.toLowerCase().includes(q) &&
-        !d.type.toLowerCase().includes(q) &&
-        !d.vehicle_registration.toLowerCase().includes(q)
+        !(d.file_name ?? "").toLowerCase().includes(q) &&
+        !(d.type ?? "").toLowerCase().includes(q) &&
+        !(d.vehicle_registration ?? "").toLowerCase().includes(q)
       ) {
         return false;
       }
@@ -135,11 +148,12 @@ export function DocumentsTable() {
         type: d.type,
         vehicle_registration: d.vehicle_registration,
         expiry_date: d.expiry_date ?? "",
-        ocr_status: OCR_STATUS[d.ocr_status].label,
-        validity: DOCUMENT_VALIDITY[d.validity].label,
+        // Défensif : le backend peut renvoyer des statuts absents du dictionnaire frontend
+        ocr_status: OCR_STATUS[d.ocr_status]?.label ?? d.ocr_status,
+        validity: DOCUMENT_VALIDITY[d.validity]?.label ?? d.validity,
         confidence: d.confidence ?? "",
         size: d.size,
-        created_at: d.created_at.split("T")[0],
+        created_at: d.created_at?.split?.("T")?.[0] ?? "",
       })),
       [
         { key: "file_name", label: "Fichier" },
@@ -302,15 +316,15 @@ export function DocumentsTable() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <StatusBadge
-                        label={OCR_STATUS[d.ocr_status].label}
-                        color={OCR_STATUS[d.ocr_status].color}
+                        label={OCR_STATUS[d.ocr_status]?.label ?? d.ocr_status ?? "—"}
+                        color={OCR_STATUS[d.ocr_status]?.color ?? "gray"}
                         withDot
                       />
                     </TableCell>
                     <TableCell>
                       <StatusBadge
-                        label={DOCUMENT_VALIDITY[d.validity].label}
-                        color={DOCUMENT_VALIDITY[d.validity].color}
+                        label={DOCUMENT_VALIDITY[d.validity]?.label ?? d.validity ?? "—"}
+                        color={DOCUMENT_VALIDITY[d.validity]?.color ?? "gray"}
                         withDot
                       />
                     </TableCell>

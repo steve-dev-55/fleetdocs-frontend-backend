@@ -72,6 +72,7 @@ export interface Vehicle {
 
 export type OcrStatus =
   | "pending_ocr"
+  | "processing"
   | "completed"
   | "ocr_done"
   | "validated"
@@ -79,7 +80,14 @@ export type OcrStatus =
   | "manual"
   | "failed";
 
-export type DocumentValidity = "valid" | "expiring_30" | "expiring_60" | "expired" | "no_expiry";
+export type DocumentValidity =
+  | "valid"
+  | "expiring_30"
+  | "expiring_60"
+  | "expiring_soon"
+  | "expired"
+  | "no_expiry"
+  | "unknown";
 
 export interface FleetDocument {
   id: string;
