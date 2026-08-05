@@ -80,10 +80,11 @@ export default function AuditLogsPage() {
       navigate("/dashboard");
       return;
     }
-    void apiGet<{ items: AuditLog[] }>("/api/audit-logs")
+    void apiGet<{ items: AuditLog[] } | AuditLog[]>("/api/audit-logs")
       .then((data) => {
-        setLogs(data.items);
-        setFiltered(data.items);
+        const items = Array.isArray(data) ? data : data.items ?? [];
+        setLogs(items);
+        setFiltered(items);
       })
       .finally(() => setLoading(false));
   }, [user, isLoading, navigate]);

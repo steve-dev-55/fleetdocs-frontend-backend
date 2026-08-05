@@ -117,11 +117,12 @@ export function NotificationsPanel() {
   const load = React.useCallback(async () => {
     try {
       const data = await apiGet<{
-        scheduled_report: ScheduledReport;
-        integrations: Integration;
+        scheduled_report?: ScheduledReport;
+        integrations?: Integration;
       }>("/api/settings/notifications");
-      setScheduled(data.scheduled_report);
-      setIntegration(data.integrations);
+      // Défensif : l'API peut ne pas renvoyer scheduled_report/integrations
+      setScheduled((prev) => ({ ...prev, ...(data.scheduled_report ?? {}) }));
+      setIntegration((prev) => ({ ...prev, ...(data.integrations ?? {}) }));
     } catch {
       // ignore
     }
