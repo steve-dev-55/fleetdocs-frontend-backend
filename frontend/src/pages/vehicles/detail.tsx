@@ -71,13 +71,20 @@ export default function VehicleDetailPage() {
   React.useEffect(() => {
     if (!vehicleId) return;
     void apiGet<Vehicle>(`/api/vehicles/${vehicleId}`).then(setVehicle).catch(() => {});
-    void apiGet<{ items: FleetDocument[] }>(
+    // Documents endpoint may return either an array directly or { items: [...] }
+    void apiGet<FleetDocument[] | { items?: FleetDocument[] }>(
       `/api/documents?vehicle_id=${vehicleId}`
-    ).then((data) => setDocs(data.items));
-    // Alerts filtered by vehicle (client-side)
-    void apiGet<{ items: Alert[] }>("/api/alerts").then((data) =>
-      setAlerts(data.items.filter((a) => a.vehicle_id === vehicleId))
-    );
+    ).then((data) => {
+      const items = Array.isArray(data) ? data : (data?.items ?? []);
+      setDocs(items);
+    }).catch(() => {});
+    // Alerts endpoint may return either an array directly or { items: [...] }
+    void apiGet<Alert[] | { items?: Alert[] }>("/api/alerts")
+      .then((data) => {
+        const items = Array.isArray(data) ? data : (data?.items ?? []);
+        setAlerts(items.filter((a) => a.vehicle_id === vehicleId));
+      })
+      .catch(() => {});
   }, [vehicleId]);
 
   // Optimistic status change
