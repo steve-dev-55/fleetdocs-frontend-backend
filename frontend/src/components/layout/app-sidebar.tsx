@@ -77,6 +77,8 @@ const mainNav: NavItem[] = [
 const adminNav: NavItem[] = [
   { label: "Journal d'audit", href: "/admin/audit-logs", icon: ShieldCheck, adminOnly: true },
   { label: "Expériences A/B", href: "/admin/experiments", icon: LayoutDashboard, adminOnly: true },
+  { label: "Types de véhicules", href: "/admin/vehicle-types", icon: Truck, adminOnly: true },
+  { label: "Types de documents", href: "/admin/document-types", icon: FileText, adminOnly: true },
 ];
 
 const settingsNav: NavItem[] = [
