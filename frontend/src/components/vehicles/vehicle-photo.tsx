@@ -4,7 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Camera, Truck, Loader2 } from "lucide-react";
-import { apiUpload, apiGet } from "@/lib/api-client";
+import { apiUpload, apiGet, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 
 interface VehiclePhotoProps {
@@ -45,7 +45,7 @@ export function VehiclePhoto({ vehicleId, registration }: VehiclePhotoProps) {
       appToast.success("Photo mise à jour");
     } catch (err) {
       appToast.error("Upload échoué", {
-        description: err instanceof Error ? err.message : undefined,
+        description: getErrorMessage(err),
       });
     } finally {
       setUploading(false);

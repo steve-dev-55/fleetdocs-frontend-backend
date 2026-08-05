@@ -3,7 +3,7 @@
 import * as React from "react";
 import { AlertsTable } from "@/components/alerts/alerts-table";
 import { Card, CardContent } from "@/components/ui/card";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, getErrorMessage } from "@/lib/api-client";
 import { ALERT_SEVERITY } from "@/lib/status-config";
 import type { Alert } from "@/lib/types";
 import { Bell, AlertTriangle, AlertCircle, Info } from "lucide-react";

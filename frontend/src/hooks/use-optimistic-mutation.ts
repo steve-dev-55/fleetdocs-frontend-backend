@@ -5,6 +5,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/api-client";
 
 interface OptimisticMutationOptions<TData, TPatch> {
   // The current state (used for rollback)
@@ -49,7 +50,7 @@ export function useOptimisticMutation<TData, TPatch>(
         options.setState(previousRef.current ?? previous);
         toast.error(
           options.errorMessage ??
-            (err instanceof Error ? err.message : "Une erreur est survenue.")
+            (getErrorMessage(err))
         );
         return { success: false as const, error: err };
       } finally {

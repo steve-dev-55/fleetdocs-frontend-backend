@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, getErrorMessage } from "@/lib/api-client";
 import { exportToCsv, formatDateTime } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { useNavigate } from "react-router-dom";

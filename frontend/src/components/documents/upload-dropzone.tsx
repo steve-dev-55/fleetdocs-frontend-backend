@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn, formatFileSize } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/api-client";
 
 export interface UploadFile {
   id: string;
@@ -154,7 +155,7 @@ export function UploadDropzone({
         toast({
           title: "Upload échoué",
           description:
-            err instanceof Error ? err.message : "Erreur inconnue",
+            getErrorMessage(err),
           variant: "destructive",
         });
       }

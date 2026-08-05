@@ -32,7 +32,7 @@ import {
   DOCUMENT_VALIDITY,
 } from "@/lib/status-config";
 import { exportToCsv, formatDate, formatFileSize, formatRelative, normalizeDocuments } from "@/lib/utils";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import type { OcrStatus, DocumentValidity, FleetDocument } from "@/lib/types";
 import {
@@ -80,7 +80,7 @@ export function DocumentsTable() {
       })
       .catch((err) => {
         appToast.error("Erreur de chargement", {
-          description: err instanceof Error ? err.message : undefined,
+          description: getErrorMessage(err),
         });
       });
   }, []);

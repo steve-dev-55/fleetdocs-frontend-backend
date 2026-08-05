@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { apiGet, apiPut } from "@/lib/api-client";
+import { apiGet, apiPut, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import type { Vehicle } from "@/lib/types";
@@ -66,7 +66,7 @@ export default function EditVehiclePage() {
       navigate(`/vehicles/${vehicleId}`);
     } catch (err) {
       appToast.error("Erreur lors de la sauvegarde", {
-        description: err instanceof Error ? err.message : undefined,
+        description: getErrorMessage(err),
       });
     } finally {
       setLoading(false);

@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { apiPost } from "@/lib/api-client";
+import { apiPost, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -62,7 +62,7 @@ export default function NewVehiclePage() {
     } catch (err) {
       appToast.error("Erreur lors de la création", {
         description:
-          err instanceof Error ? err.message : "Réessayez dans un instant.",
+          getErrorMessage(err),
       });
     } finally {
       setLoading(false);

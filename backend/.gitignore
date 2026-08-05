@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environnement
+venv/
+.venv/
+env/
+ENV/
+
+# Variables d'environnement
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Uploads
+uploads/
+*.pdf
+*.jpg
+*.png
+*.jpeg
+*.webp
+
+# Logs
+*.log
+dev.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Base de données
+*.db
+*.sqlite3

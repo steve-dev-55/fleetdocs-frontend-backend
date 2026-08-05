@@ -12,7 +12,7 @@ import {
   Bell,
   FileBarChart,
 } from "lucide-react";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import { exportToCsv } from "@/lib/utils";
 import type { Vehicle, FleetDocument, Alert } from "@/lib/types";
@@ -87,7 +87,7 @@ export default function ExportsPage() {
       })
       .catch((err) => {
         appToast.error("Erreur de chargement", {
-          description: err instanceof Error ? err.message : undefined,
+          description: getErrorMessage(err),
         });
       });
   }, []);

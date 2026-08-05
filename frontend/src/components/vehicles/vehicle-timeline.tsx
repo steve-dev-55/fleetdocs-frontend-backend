@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, getErrorMessage } from "@/lib/api-client";
 import { formatDateTime, formatRelative } from "@/lib/utils";
 import {
   FileText,

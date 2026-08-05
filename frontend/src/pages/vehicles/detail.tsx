@@ -33,6 +33,7 @@ import {
   daysUntil,
   formatFileSize,
   downloadMockPdf,
+  normalizeDocuments,
 } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -72,11 +73,10 @@ export default function VehicleDetailPage() {
     if (!vehicleId) return;
     void apiGet<Vehicle>(`/api/vehicles/${vehicleId}`).then(setVehicle).catch(() => {});
     // Documents endpoint may return either an array directly or { items: [...] }
-    void apiGet<FleetDocument[] | { items?: FleetDocument[] }>(
+    void apiGet<unknown>(
       `/api/documents?vehicle_id=${vehicleId}`
     ).then((data) => {
-      const items = Array.isArray(data) ? data : (data?.items ?? []);
-      setDocs(items);
+      setDocs(normalizeDocuments(data) as unknown as FleetDocument[]);
     }).catch(() => {});
     // Alerts endpoint may return either an array directly or { items: [...] }
     void apiGet<Alert[] | { items?: Alert[] }>("/api/alerts")

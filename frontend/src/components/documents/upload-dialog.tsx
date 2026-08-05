@@ -20,7 +20,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { UploadDropzone } from "@/components/documents/upload-dropzone";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, getErrorMessage } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload } from "lucide-react";
 import type { Vehicle, DocumentType } from "@/lib/types";

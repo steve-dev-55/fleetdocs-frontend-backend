@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Check, X, Trash2 } from "lucide-react";
-import { apiGet, apiPut } from "@/lib/api-client";
+import { apiGet, apiPut, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 
 interface CustomFieldsCardProps {

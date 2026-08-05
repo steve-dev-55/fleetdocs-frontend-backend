@@ -49,7 +49,7 @@ import { VehicleStatusBadge } from "@/components/vehicles/vehicle-status-badge";
 import { ComplianceDot } from "@/components/vehicles/compliance-dot";
 import { VEHICLE_STATUS } from "@/lib/status-config";
 import { exportToCsv } from "@/lib/utils";
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiGet, apiPost, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import { useSavedViews, type SavedView } from "@/hooks/use-saved-views";
 import { useColumnVisibility, type ColumnDef } from "@/hooks/use-column-visibility";
@@ -174,7 +174,7 @@ export function VehiclesTable() {
       setTotalCount(total);
     } catch (err) {
       appToast.error("Erreur de chargement", {
-        description: err instanceof Error ? err.message : undefined,
+        description: getErrorMessage(err),
       });
     } finally {
       setIsLoading(false);

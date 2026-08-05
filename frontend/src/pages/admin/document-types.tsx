@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api-client";
+import { apiGet, apiPost, apiPut, apiDelete, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import { FileText, Plus, Pencil, Trash2 } from "lucide-react";
 
@@ -37,7 +37,7 @@ export default function DocumentTypesPage() {
       setItems(Array.isArray(data) ? data : []);
     } catch (err) {
       appToast.error("Erreur", {
-        description: err instanceof Error ? err.message : undefined,
+        description: getErrorMessage(err),
       });
     } finally {
       setLoading(false);
@@ -79,7 +79,7 @@ export default function DocumentTypesPage() {
       void load();
     } catch (err) {
       appToast.error("Erreur", {
-        description: err instanceof Error ? err.message : undefined,
+        description: getErrorMessage(err),
       });
     } finally {
       setSaving(false);
@@ -99,7 +99,7 @@ export default function DocumentTypesPage() {
       void load();
     } catch (err) {
       appToast.error("Erreur", {
-        description: err instanceof Error ? err.message : undefined,
+        description: getErrorMessage(err),
       });
     }
   };

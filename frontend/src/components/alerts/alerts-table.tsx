@@ -29,7 +29,7 @@ import {
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ALERT_TYPES, ALERT_SEVERITY } from "@/lib/status-config";
 import { exportToCsv, formatDateTime, formatRelative } from "@/lib/utils";
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiGet, apiPost, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import type { AlertType, AlertStatus, Alert } from "@/lib/types";
 import {
@@ -87,7 +87,7 @@ export function AlertsTable() {
       setAllAlerts(items);
     } catch (err) {
       appToast.error("Erreur de chargement", {
-        description: err instanceof Error ? err.message : undefined,
+        description: getErrorMessage(err),
       });
     }
   }, []);

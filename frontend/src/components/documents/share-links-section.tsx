@@ -26,7 +26,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiGet, apiPost, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import { formatDateTime, formatRelative } from "@/lib/utils";
 import { Link2, Copy, Trash2, Plus, Clock, ExternalLink } from "lucide-react";

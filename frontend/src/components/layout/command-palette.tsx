@@ -28,7 +28,7 @@ import {
   ShieldCheck,
   FlaskConical,
 } from "lucide-react";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, getErrorMessage } from "@/lib/api-client";
 import type { Vehicle, FleetDocument, Alert } from "@/lib/types";
 import { VEHICLE_STATUS, OCR_STATUS, ALERT_TYPES } from "@/lib/status-config";
 

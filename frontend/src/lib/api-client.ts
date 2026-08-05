@@ -12,6 +12,50 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Extrait un message d'erreur lisible depuis une ApiError ou une Error standard.
+ * Gère les formats de réponses d'erreur FastAPI/Pydantic :
+ *   - {detail: "string"} → "string"
+ *   - {detail: [{msg: "..."}, ...]} → "msg1, msg2, ..."
+ *   - {message: "string"} → "string"
+ *   - Error standard → err.message
+ */
+export function getErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    const body = err.body as Record<string, unknown> | undefined;
+    const detail = body?.detail;
+
+    // FastAPI validation error: {detail: [{msg: "...", ...}, ...]}
+    if (Array.isArray(detail)) {
+      const messages = detail
+        .map((d: Record<string, unknown>) => d?.msg as string)
+        .filter(Boolean);
+      if (messages.length > 0) {
+        return messages.join(", ");
+      }
+    }
+
+    // FastAPI error: {detail: "string"}
+    if (typeof detail === "string") {
+      return detail;
+    }
+
+    // Generic error: {message: "string"}
+    if (typeof body?.message === "string") {
+      return body.message;
+    }
+
+    // Fallback to the error message
+    return err.message || `HTTP ${err.status}`;
+  }
+
+  if (err instanceof Error) {
+    return err.message;
+  }
+
+  return "Une erreur inattendue s'est produite.";
+}
+
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:8000";
 
 function getToken(): string | null {

@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { initials } from "@/lib/utils";
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiGet, apiPost, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import { formatRelative, formatDateTime } from "@/lib/utils";
 import { Send, MessageSquare, AtSign, Reply, Loader2 } from "lucide-react";
