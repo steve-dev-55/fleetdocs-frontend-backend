@@ -72,15 +72,18 @@ export default function ExportsPage() {
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
 
   React.useEffect(() => {
+    const normalize = <T,>(data: T[] | { items?: T[] }): T[] =>
+      Array.isArray(data) ? data : (data?.items ?? []);
+
     void Promise.all([
-      apiGet<{ items: Vehicle[] }>("/api/vehicles"),
-      apiGet<{ items: FleetDocument[] }>("/api/documents"),
-      apiGet<{ items: Alert[] }>("/api/alerts?status=all"),
+      apiGet<Vehicle[] | { items?: Vehicle[] }>("/api/vehicles"),
+      apiGet<FleetDocument[] | { items?: FleetDocument[] }>("/api/documents"),
+      apiGet<Alert[] | { items?: Alert[] }>("/api/alerts?status=all"),
     ])
       .then(([v, d, a]) => {
-        setVehicles(v.items);
-        setDocuments(d.items);
-        setAlerts(a.items);
+        setVehicles(normalize(v));
+        setDocuments(normalize(d));
+        setAlerts(normalize(a));
       })
       .catch((err) => {
         appToast.error("Erreur de chargement", {
