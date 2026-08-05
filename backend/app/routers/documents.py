@@ -11,6 +11,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import func, or_, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_active_user
@@ -54,9 +55,9 @@ async def _get_document_or_404(
     db: AsyncSession, document_id: UUID, company_id: UUID
 ) -> Document:
     result = await db.execute(
-        select(Document).where(
-            Document.id == document_id, Document.company_id == company_id
-        )
+        select(Document)
+        .options(selectinload(Document.document_type))
+        .where(Document.id == document_id, Document.company_id == company_id)
     )
     doc = result.scalar_one_or_none()
     if not doc:
@@ -126,7 +127,11 @@ async def list_documents(
     db: AsyncSession = Depends(get_db),
 ):
     """Liste les documents avec filtres."""
-    query = select(Document).where(Document.company_id == company.id)
+    query = (
+        select(Document)
+        .options(selectinload(Document.document_type))
+        .where(Document.company_id == company.id)
+    )
 
     if search:
         pattern = f"%{search}%"
@@ -254,7 +259,14 @@ async def upload_document(
             )
 
     await db.commit()
-    await db.refresh(doc)
+
+    # Recharge le document avec ses relations (évite MissingGreenlet à la sérialisation)
+    result = await db.execute(
+        select(Document)
+        .options(selectinload(Document.document_type))
+        .where(Document.id == doc.id)
+    )
+    doc = result.scalar_one()
     return DocumentResponse.model_validate(doc)
 
 
@@ -372,7 +384,14 @@ async def update_document(
                 await _trigger_alerts_for_document(db, doc, vehicle)
 
     await db.commit()
-    await db.refresh(doc)
+
+    # Recharge le document avec ses relations (évite MissingGreenlet à la sérialisation)
+    result = await db.execute(
+        select(Document)
+        .options(selectinload(Document.document_type))
+        .where(Document.id == doc.id)
+    )
+    doc = result.scalar_one()
     return DocumentResponse.model_validate(doc)
 
 
