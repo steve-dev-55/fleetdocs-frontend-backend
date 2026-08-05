@@ -133,9 +133,9 @@ body {
 
 .kpi-card {
     position: relative;
-    background:
+    /*background:
         radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--accent-color, var(--primary)) 12%, transparent), transparent 55%),
-        linear-gradient(165deg, var(--surface-elevated) 0%, var(--surface) 100%);
+        linear-gradient(165deg, var(--surface-elevated) 0%, var(--surface) 100%);*/
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
