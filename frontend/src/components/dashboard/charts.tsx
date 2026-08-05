@@ -28,12 +28,14 @@ const STATUS_COLOR_HEX: Record<VehicleStatus, string> = {
 };
 
 export function StatusDonutChart({ data }: StatusDonutChartProps) {
-  const total = data.reduce((sum, d) => sum + d.count, 0);
+  // Défensif : l'API peut renvoyer undefined/null pour status_distribution
+  const safeData = Array.isArray(data) ? data : [];
+  const total = safeData.reduce((sum, d) => sum + d.count, 0);
 
-  const chartData = data.map((d) => ({
-    name: VEHICLE_STATUS[d.status].label,
+  const chartData = safeData.map((d) => ({
+    name: VEHICLE_STATUS[d.status]?.label ?? d.status,
     value: d.count,
-    color: STATUS_COLOR_HEX[d.status],
+    color: STATUS_COLOR_HEX[d.status] ?? "#6b7280",
     key: d.status,
   }));
 
@@ -117,6 +119,8 @@ interface ComplianceBarChartProps {
 }
 
 export function ComplianceBarChart({ data }: ComplianceBarChartProps) {
+  // Défensif : l'API peut renvoyer undefined/null pour compliance_by_type
+  const safeData = Array.isArray(data) ? data : [];
   return (
     <Card className="rounded-xl shadow-sm">
       <CardHeader className="pb-2">
@@ -124,7 +128,7 @@ export function ComplianceBarChart({ data }: ComplianceBarChartProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {data.map((d) => {
+          {safeData.map((d) => {
             const color =
               d.rate >= 90
                 ? "bg-green-500"

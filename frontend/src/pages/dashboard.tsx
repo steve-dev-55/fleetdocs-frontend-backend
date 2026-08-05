@@ -55,7 +55,58 @@ export default function DashboardPage() {
     apiGet<DashboardResponse>(`/api/dashboard?period=${period}`)
       .then((d) => {
         if (cancelled) return;
-        setData(d);
+        // Normalisation défensive : gère 2 formats backend possibles
+        // Format A (plat) : { total_vehicles, status_distribution, ... }
+        // Format B (emboîté, actuel backend FastAPI) : { kpis: {...}, charts: {...}, recent_alerts, recent_documents }
+        const kpis = (d as any)?.kpis ?? {};
+        const charts = (d as any)?.charts ?? {};
+        const vehiclesByStatus = charts.vehicles_by_status ?? {};
+        const documentsByValidity = charts.documents_by_validity ?? {};
+
+        // Conversion du format backend (Record<status, count>) vers le format attendu par les charts
+        const statusDistribution = Array.isArray(d?.status_distribution)
+          ? d.status_distribution
+          : Array.isArray(vehiclesByStatus)
+          ? vehiclesByStatus
+          : Object.entries(vehiclesByStatus).map(([status, count]) => ({
+              status: status as any,
+              count: count as number,
+            }));
+
+        // Conformité par type : le backend ne fournit pas ce champ directement,
+        // on dérive un équivalent à partir de documents_by_validity si disponible
+        const complianceByType = Array.isArray(d?.compliance_by_type)
+          ? d.compliance_by_type
+          : Object.entries(documentsByValidity).map(([type, count]) => ({
+              type,
+              rate: (count as number) ?? 0,
+            }));
+
+        const normalized: DashboardResponse = {
+          total_vehicles: d?.total_vehicles ?? kpis.total_vehicles ?? 0,
+          compliance_rate:
+            d?.compliance_rate ?? kpis.compliance_rate ?? 0,
+          active_alerts: d?.active_alerts ?? kpis.active_alerts ?? 0,
+          pending_ocr: d?.pending_ocr ?? kpis.pending_ocr ?? 0,
+          documents_count:
+            d?.documents_count ?? kpis.total_documents ?? 0,
+          status_distribution: statusDistribution,
+          compliance_by_type: complianceByType,
+          alerts_trend: Array.isArray(d?.alerts_trend) ? d.alerts_trend : [],
+          uploads_trend: Array.isArray(d?.uploads_trend)
+            ? d.uploads_trend
+            : Array.isArray(charts.documents_timeline)
+            ? charts.documents_timeline.map((item: any) => ({
+                month: item.date ?? "",
+                count: item.count ?? 0,
+              }))
+            : [],
+          recent_alerts: Array.isArray(d?.recent_alerts) ? d.recent_alerts : [],
+          recent_documents: Array.isArray(d?.recent_documents)
+            ? d.recent_documents
+            : [],
+        };
+        setData(normalized);
         setLoading(false);
       })
       .catch(async () => {
@@ -65,18 +116,28 @@ export default function DashboardPage() {
             apiGet<any[]>("/api/vehicles").catch(() => []),
             apiGet<any[]>("/api/alerts").catch(() => []),
           ]);
-          const activeAlerts = alerts.filter((a) => a.status === "active");
+          const safeVehicles = Array.isArray(vehicles) ? vehicles : [];
+          const safeAlerts = Array.isArray(alerts) ? alerts : [];
+          const activeAlerts = safeAlerts.filter((a) => a?.status === "active");
           const statusCounts: Record<string, number> = {};
-          vehicles.forEach((v) => {
-            statusCounts[v.status] = (statusCounts[v.status] || 0) + 1;
+          safeVehicles.forEach((v) => {
+            const s = v?.status;
+            if (!s) return;
+            statusCounts[s] = (statusCounts[s] || 0) + 1;
           });
           const fallback: DashboardResponse = {
-            total_vehicles: vehicles.length,
-            compliance_rate: Math.round((vehicles.filter((v) => v.status === "active").length / Math.max(vehicles.length, 1)) * 100),
+            total_vehicles: safeVehicles.length,
+            compliance_rate: Math.round(
+              (safeVehicles.filter((v) => v?.status === "active").length /
+                Math.max(safeVehicles.length, 1)) *
+                100
+            ),
             active_alerts: activeAlerts.length,
             pending_ocr: 0,
             documents_count: 0,
-            status_distribution: Object.entries(statusCounts).map(([status, count]) => ({ status: status as any, count })),
+            status_distribution: Object.entries(statusCounts).map(
+              ([status, count]) => ({ status: status as any, count })
+            ),
             compliance_by_type: [],
             alerts_trend: [],
             uploads_trend: [],
@@ -246,7 +307,7 @@ export default function DashboardPage() {
                           : "text-blue-600"
                       }`}
                     >
-                      {OCR_STATUS[d.ocr_status].label}
+                      {OCR_STATUS[d.ocr_status]?.label ?? d.ocr_status ?? "—"}
                     </span>
                   </div>
                 </Link>

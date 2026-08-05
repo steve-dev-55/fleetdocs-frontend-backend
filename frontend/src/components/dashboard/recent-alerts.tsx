@@ -11,6 +11,8 @@ import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function RecentAlerts({ alerts }: { alerts: Alert[] }) {
+  // Défensif : alerts peut être undefined/null si l'API ne renvoie pas le champ
+  const safeAlerts = Array.isArray(alerts) ? alerts : [];
   return (
     <Card className="rounded-xl shadow-sm">
       <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
@@ -24,8 +26,9 @@ export function RecentAlerts({ alerts }: { alerts: Alert[] }) {
       </CardHeader>
       <CardContent>
         <div className="divide-y divide-border">
-          {alerts.slice(0, 6).map((a) => {
-            const sev = ALERT_SEVERITY[a.type];
+          {safeAlerts.slice(0, 6).map((a) => {
+            const sev = ALERT_SEVERITY[a.type] ?? { color: "gray" as const };
+            const label = ALERT_TYPES[a.type] ?? a.type ?? "Alerte";
             return (
               <Link
                 key={a.id}
@@ -35,7 +38,7 @@ export function RecentAlerts({ alerts }: { alerts: Alert[] }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <StatusBadge
-                      label={ALERT_TYPES[a.type]}
+                      label={label}
                       color={sev.color}
                       withDot
                     />
