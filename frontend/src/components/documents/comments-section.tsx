@@ -85,10 +85,10 @@ export function CommentsSection({ documentId }: CommentsSectionProps) {
 
   const load = React.useCallback(async () => {
     try {
-      const data = await apiGet<{ items: Comment[] }>(
-        `/api/comments?document_id=${documentId}`
+      const data = await apiGet<Comment[] | { items?: Comment[] }>(
+        `/api/documents/${documentId}/comments`
       );
-      setComments(data.items);
+      setComments(Array.isArray(data) ? data : (data?.items ?? []));
     } catch {
       // ignore
     }
@@ -132,9 +132,8 @@ export function CommentsSection({ documentId }: CommentsSectionProps) {
     if (!body.trim()) return;
     setIsSending(true);
     try {
-      await apiPost("/api/comments", {
-        document_id: documentId,
-        body: body.trim(),
+      await apiPost(`/api/documents/${documentId}/comments`, {
+        content: body.trim(),
       });
       setBody("");
       await load();
@@ -150,9 +149,8 @@ export function CommentsSection({ documentId }: CommentsSectionProps) {
     if (!replyBody.trim()) return;
     setIsSending(true);
     try {
-      await apiPost("/api/comments", {
-        document_id: documentId,
-        body: replyBody.trim(),
+      await apiPost(`/api/documents/${documentId}/comments`, {
+        content: replyBody.trim(),
         parent_id: parentId,
       });
       setReplyBody("");

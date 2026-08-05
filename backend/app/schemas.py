@@ -385,6 +385,8 @@ class ShareLinkResponse(ORMModel):
     document_id: UUID
     expires_at: Optional[datetime] = None
     created_at: datetime
+    revoked: bool = False
+    created_by: Optional[str] = None
 
 
 class CommentCreate(BaseModel):

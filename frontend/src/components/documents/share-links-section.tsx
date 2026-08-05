@@ -50,10 +50,10 @@ export function ShareLinksSection({ documentId }: { documentId: string }) {
 
   const load = React.useCallback(async () => {
     try {
-      const data = await apiGet<{ items: ShareLink[] }>(
+      const data = await apiGet<ShareLink[] | { items?: ShareLink[] }>(
         `/api/documents/${documentId}/share-links`
       );
-      setLinks(data.items);
+      setLinks(Array.isArray(data) ? data : (data?.items ?? []));
     } catch {
       // ignore
     }

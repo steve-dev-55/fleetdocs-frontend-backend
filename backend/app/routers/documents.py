@@ -442,7 +442,48 @@ async def download_document(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/{document_id}/share-link", response_model=ShareLinkResponse)
+@router.get("/{document_id}/share-links", response_model=List[ShareLinkResponse])
+async def list_share_links(
+    document_id: UUID,
+    company: Company = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """Liste les liens de partage d'un document."""
+    doc = await _get_document_or_404(db, document_id, company.id)
+
+    result = await db.execute(
+        select(ShareLink)
+        .where(ShareLink.document_id == doc.id)
+        .order_by(ShareLink.created_at.desc())
+    )
+    links = result.scalars().all()
+
+    responses = []
+    for link in links:
+        created_by = None
+        if link.created_by_id:
+            user_result = await db.execute(
+                select(User).where(User.id == link.created_by_id)
+            )
+            creator = user_result.scalar_one_or_none()
+            if creator:
+                created_by = f"{creator.first_name} {creator.last_name}"
+        responses.append(
+            ShareLinkResponse(
+                id=link.id,
+                token=link.token,
+                url=f"{settings.base_url}/api/shared/{link.token}",
+                document_id=link.document_id,
+                expires_at=link.expires_at,
+                created_at=link.created_at,
+                revoked=link.revoked_at is not None,
+                created_by=created_by,
+            )
+        )
+    return responses
+
+
+@router.post("/{document_id}/share-links", response_model=ShareLinkResponse)
 async def create_share_link(
     document_id: UUID,
     payload: ShareLinkCreate,
@@ -466,6 +507,7 @@ async def create_share_link(
     await db.commit()
     await db.refresh(share)
 
+    created_by_name = f"{current_user.first_name} {current_user.last_name}"
     return ShareLinkResponse(
         id=share.id,
         token=share.token,
@@ -473,7 +515,36 @@ async def create_share_link(
         document_id=share.document_id,
         expires_at=share.expires_at,
         created_at=share.created_at,
+        created_by=created_by_name,
     )
+
+
+@router.post("/{document_id}/share-links/{link_id}/revoke")
+async def revoke_share_link(
+    document_id: UUID,
+    link_id: UUID,
+    company: Company = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """Révoque un lien de partage."""
+    doc = await _get_document_or_404(db, document_id, company.id)
+
+    result = await db.execute(
+        select(ShareLink).where(
+            ShareLink.id == link_id,
+            ShareLink.document_id == doc.id,
+        )
+    )
+    link = result.scalar_one_or_none()
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lien de partage introuvable.",
+        )
+
+    link.revoked_at = datetime.now(timezone.utc)
+    await db.commit()
+    return {"message": "Lien de partage révoqué."}
 
 
 # ---------------------------------------------------------------------------
