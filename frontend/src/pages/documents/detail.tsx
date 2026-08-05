@@ -16,6 +16,7 @@ import {
 import {
   OCR_STATUS,
   DOCUMENT_VALIDITY,
+  type ColorKey,
 } from "@/lib/status-config";
 import { apiGet } from "@/lib/api-client";
 import {
@@ -87,6 +88,15 @@ export default function DocumentDetailPage() {
     { icon: Hash, label: "Taille", value: formatFileSize(doc.size) },
   ];
 
+  const ocrStatusInfo = OCR_STATUS[doc.ocr_status] ?? {
+    label: "OCR inconnu",
+    color: "gray" as ColorKey,
+  };
+  const validityInfo = DOCUMENT_VALIDITY[doc.validity] ?? {
+    label: "Validité inconnue",
+    color: "gray" as ColorKey,
+  };
+
   const ocrEvents = [
     { at: doc.created_at, label: "Document uploadé", icon: Upload },
     {
@@ -101,7 +111,7 @@ export default function DocumentDetailPage() {
     },
     {
       at: doc.created_at,
-      label: `Statut : ${OCR_STATUS[doc.ocr_status].label}`,
+      label: `Statut : ${ocrStatusInfo.label}`,
       icon: FileText,
     },
   ];
@@ -127,13 +137,13 @@ export default function DocumentDetailPage() {
               </h1>
               <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <StatusBadge
-                  label={OCR_STATUS[doc.ocr_status].label}
-                  color={OCR_STATUS[doc.ocr_status].color}
+                  label={ocrStatusInfo.label}
+                  color={ocrStatusInfo.color}
                   withDot
                 />
                 <StatusBadge
-                  label={DOCUMENT_VALIDITY[doc.validity].label}
-                  color={DOCUMENT_VALIDITY[doc.validity].color}
+                  label={validityInfo.label}
+                  color={validityInfo.color}
                   withDot
                 />
                 <Badge variant="outline">v{doc.version}</Badge>
