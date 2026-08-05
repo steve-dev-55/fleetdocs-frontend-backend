@@ -55,6 +55,12 @@ const SEVERITY_OPTIONS: { value: string; label: string }[] = [
   { value: "info", label: "Info" },
 ];
 
+const FILTER_BADGE_CLASSES: Record<string, string> = {
+  critical: "bg-accent-red/15 text-accent-red border border-accent-red/30",
+  warning: "bg-accent-amber/15 text-accent-amber border border-accent-amber/30",
+  info: "bg-accent-teal/15 text-accent-teal border border-accent-teal/30",
+};
+
 export function AlertsTable() {
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
