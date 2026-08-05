@@ -75,10 +75,10 @@ export function VehicleTimeline({ vehicleId }: { vehicleId: string }) {
     try {
       const params = new URLSearchParams();
       if (filter !== "all") params.set("type", filter);
-      const data = await apiGet<{ items: TimelineEvent[] }>(
+      const data = await apiGet<TimelineEvent[] | { items?: TimelineEvent[] }>(
         `/api/vehicles/${vehicleId}/timeline?${params.toString()}`
       );
-      setEvents(data.items);
+      setEvents(Array.isArray(data) ? data : (data?.items ?? []));
     } catch {
       // ignore
     } finally {
