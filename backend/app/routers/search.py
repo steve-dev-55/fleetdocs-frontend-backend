@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import or_, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -49,6 +50,7 @@ async def global_search(
     # Documents
     docs_result = await db.execute(
         select(Document)
+        .options(selectinload(Document.document_type))
         .where(
             Document.company_id == company.id,
             or_(

@@ -199,11 +199,25 @@ class VehicleTypeResponse(ORMModel):
 class DocumentTypeCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
     code: str = Field(..., min_length=1, max_length=32)
-    alert_days: Optional[Dict[str, Any]] = None
+    # Accepte soit un dict {"warning": 30, "critical": 7} soit un array [90, 60, 30]
+    alert_days: Optional[Union[Dict[str, Any], List[int]]] = None
     is_mandatory: bool = False
     description: Optional[str] = None
     icon: Optional[str] = None
     color: Optional[str] = None
+
+    @field_validator("alert_days", mode="before")
+    @classmethod
+    def normalize_alert_days(cls, v):
+        """Convertit les arrays en dict pour la compatibilité DB."""
+        if isinstance(v, list):
+            # Convertit [90, 60, 30] en {"warning": 30, "critical": 0}
+            # en assumant que le plus petit = critical, les autres = warning
+            if not v:
+                return None
+            sorted_days = sorted(v)
+            return {"warning": sorted_days[0], "critical": 0}
+        return v
 
 
 class DocumentTypeResponse(ORMModel):
@@ -348,6 +362,8 @@ class DocumentUpdate(BaseModel):
     issued_date: Optional[datetime] = None
     reference: Optional[str] = None
     ocr_data: Optional[Dict[str, Any]] = None
+    ocr_status: Optional[OCRStatus] = None
+    ocr_confidence: Optional[float] = None
     validity_status: Optional[ValidityStatus] = None
 
 
@@ -401,7 +417,7 @@ class CommentResponse(ORMModel):
     author_id: Optional[UUID] = None
     parent_id: Optional[UUID] = None
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     author_name: Optional[str] = None
     replies: List["CommentResponse"] = []
 

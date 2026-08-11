@@ -1,5 +1,6 @@
 """Routeur Types de véhicules (CRUD pour les types spécifiques à la société)."""
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_, select
@@ -63,13 +64,12 @@ async def create_vehicle_type(
 
 @router.put("/{type_id}", response_model=VehicleTypeResponse)
 async def update_vehicle_type(
-    type_id: int,
+    type_id: UUID,
     payload: VehicleTypeCreate,
     company: Company = Depends(get_current_company),
     db: AsyncSession = Depends(get_db),
 ):
     """Met à jour un type de véhicule (uniquement les types de la société)."""
-    from uuid import UUID
     result = await db.execute(
         select(VehicleType).where(
             VehicleType.id == type_id,
@@ -94,7 +94,7 @@ async def update_vehicle_type(
 
 @router.delete("/{type_id}")
 async def delete_vehicle_type(
-    type_id: int,
+    type_id: UUID,
     company: Company = Depends(get_current_company),
     db: AsyncSession = Depends(get_db),
 ):

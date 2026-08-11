@@ -1,5 +1,6 @@
 """Routeur Types de documents (CRUD pour les types spécifiques à la société)."""
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_, select
@@ -66,7 +67,7 @@ async def create_document_type(
 
 @router.put("/{type_id}", response_model=DocumentTypeResponse)
 async def update_document_type(
-    type_id: int,
+    type_id: UUID,
     payload: DocumentTypeCreate,
     company: Company = Depends(get_current_company),
     db: AsyncSession = Depends(get_db),
@@ -100,7 +101,7 @@ async def update_document_type(
 
 @router.delete("/{type_id}")
 async def delete_document_type(
-    type_id: int,
+    type_id: UUID,
     company: Company = Depends(get_current_company),
     db: AsyncSession = Depends(get_db),
 ):
