@@ -3,16 +3,23 @@
 Point d'entrée de l'API. Configure CORS, inclut tous les routeurs,
 expose un endpoint de santé et crée les tables au démarrage.
 """
+import logging
 import os
+import traceback
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import Base, engine
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -193,3 +200,39 @@ async def root():
         "docs": "/docs",
         "health": "/api/health",
     }
+
+
+# ---------------------------------------------------------------------------
+# Global exception handler — preserves CORS headers on 500 errors
+# ---------------------------------------------------------------------------
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Capture toutes les exceptions non gérées pour :
+    1. Logger l'erreur avec le traceback complet
+    2. Retourner un JSON 500 avec CORS headers (sinon le navigateur
+       bloque la réponse et affiche une erreur CORS au lieu du 500)
+    """
+    logger.error(
+        "Unhandled exception on %s %s: %s",
+        request.method,
+        request.url.path,
+        str(exc),
+    )
+    logger.error(traceback.format_exc())
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Une erreur interne est survenue.",
+            "error": str(exc),
+            "path": str(request.url.path),
+        },
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )

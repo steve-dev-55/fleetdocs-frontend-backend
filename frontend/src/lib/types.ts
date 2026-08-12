@@ -92,6 +92,7 @@ export type DocumentValidity =
 export interface FleetDocument {
   id: string;
   file_name: string;
+  file_url?: string;
   type: string;
   type_id: string;
   vehicle_id: string;

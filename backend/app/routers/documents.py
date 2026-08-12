@@ -208,11 +208,10 @@ async def upload_document(
 
     file_url = f"{settings.base_url}/uploads/{safe_name}"
 
-    # Détermine le statut OCR
-    if settings.MISTRAL_API_KEY:
-        ocr_status = OCRStatus.pending_ocr
-    else:
-        ocr_status = OCRStatus.manual
+    # MVP : saisie manuelle uniquement (OCR désactivé pour le MVP)
+    # L'utilisateur devra saisir les dates manuellement après upload.
+    # Pour réactiver l'OCR plus tard : set MISTRAL_API_KEY + décommenter le bloc OCR ci-dessous
+    ocr_status = OCRStatus.manual
 
     # Calcule le statut de validité
     validity = _compute_validity_status(expiry_date)
@@ -238,25 +237,14 @@ async def upload_document(
     # Déclenche les alertes si nécessaire
     await _trigger_alerts_for_document(db, doc, vehicle)
 
-    # Lance l'OCR si configuré
-    if settings.MISTRAL_API_KEY:
-        try:
-            await _run_ocr(doc, contents, file.content_type)
-        except Exception:
-            doc.ocr_status = OCRStatus.failed
-            # Alerte d'échec OCR
-            db.add(
-                Alert(
-                    type=AlertType.ocr_failed,
-                    category=AlertCategory.system,
-                    severity=AlertSeverity.info,
-                    status=AlertStatus.active,
-                    message=f"Échec de l'OCR sur le document : {doc.file_name}",
-                    vehicle_id=vehicle.id,
-                    document_id=doc.id,
-                    company_id=company.id,
-                )
-            )
+    # OCR désactivé pour le MVP — saisie manuelle uniquement
+    # Pour réactiver plus tard :
+    # if settings.MISTRAL_API_KEY:
+    #     try:
+    #         await _run_ocr(doc, contents, file.content_type)
+    #     except Exception:
+    #         doc.ocr_status = OCRStatus.failed
+    #         db.add(Alert(...))
 
     await db.commit()
 

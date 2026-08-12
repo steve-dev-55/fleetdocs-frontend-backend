@@ -116,25 +116,12 @@ export function UploadDropzone({
             f.id === uf.id ? { ...f, status: "done", progress: 100 } : f
           )
         );
-        // Simulate OCR completion after a few seconds (the backend processes async)
-        setTimeout(() => {
-          const confidence = 85 + Math.random() * 13;
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === uf.id
-                ? {
-                    ...f,
-                    ocrDone: true,
-                    confidence: parseFloat(confidence.toFixed(1)),
-                  }
-                : f
-            )
-          );
-          toast({
-            title: "OCR terminé",
-            description: `${uf.file.name} — confiance ${confidence.toFixed(1)}%`,
-          });
-        }, 2500);
+        // MVP: OCR désactivé — saisie manuelle uniquement
+        // L'utilisateur devra saisir les dates dans le détail du document
+        toast({
+          title: "Document uploadé",
+          description: `${uf.file.name} — prêt pour saisie manuelle`,
+        });
         onUploaded?.(uf);
       } catch (err) {
         setFiles((prev) =>

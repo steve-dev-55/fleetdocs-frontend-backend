@@ -18,12 +18,12 @@ import {
   DOCUMENT_VALIDITY,
   type ColorKey,
 } from "@/lib/status-config";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, apiDelete, getErrorMessage } from "@/lib/api-client";
+import { appToast } from "@/lib/toast";
 import {
   formatDate,
   formatDateTime,
   formatFileSize,
-  downloadMockPdf,
 } from "@/lib/utils";
 import { CommentsSection } from "@/components/documents/comments-section";
 import { ShareLinksSection } from "@/components/documents/share-links-section";
@@ -39,6 +39,7 @@ import {
   Sparkles,
   Clock,
   Share2,
+  Archive,
 } from "lucide-react";
 import {
   Table,
@@ -50,26 +51,93 @@ import {
 } from "@/components/ui/table";
 import type { FleetDocument, Vehicle } from "@/lib/types";
 
+// Backend returns different field names than the frontend expects.
+// We normalize the response here.
+interface BackendDocument {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number;
+  mime_type?: string;
+  version: number;
+  ocr_status: string;
+  ocr_confidence?: number;
+  ocr_data?: Record<string, unknown>;
+  validity_status: string;
+  expiry_date?: string;
+  issued_date?: string;
+  reference?: string;
+  document_type_id?: string;
+  document_type?: { name: string; code: string } | null;
+  vehicle_id: string;
+  uploaded_by_id?: string;
+  created_at: string;
+}
+
+function normalizeDoc(d: BackendDocument): FleetDocument {
+  return {
+    id: d.id,
+    file_name: d.file_name,
+    file_url: d.file_url,
+    type: d.document_type?.name ?? "—",
+    type_id: d.document_type_id ?? "",
+    vehicle_id: d.vehicle_id,
+    vehicle_registration: "",
+    expiry_date: d.expiry_date,
+    issued_date: d.issued_date,
+    ocr_status: d.ocr_status as FleetDocument["ocr_status"],
+    validity: d.validity_status as FleetDocument["validity"],
+    size: d.file_size,
+    mime_type: d.mime_type ?? "application/octet-stream",
+    confidence: d.ocr_confidence,
+    version: d.version,
+    created_by: d.uploaded_by_id ?? "—",
+    created_at: d.created_at,
+    reference: d.reference,
+  };
+}
+
 export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>();
   const docId = params.id ?? "";
-  const [doc, setDoc] = React.useState<FleetDocument | null>(null);
+  const [doc, setDoc] = React.useState<(FleetDocument & { file_url?: string }) | null>(null);
   const [vehicle, setVehicle] = React.useState<Vehicle | null>(null);
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [shareOpen, setShareOpen] = React.useState(false);
+  const [archiving, setArchiving] = React.useState(false);
 
   React.useEffect(() => {
     if (!docId) return;
-    void apiGet<FleetDocument>(`/api/documents/${docId}`)
+    void apiGet<BackendDocument>(`/api/documents/${docId}`)
       .then((d) => {
-        setDoc(d);
-        // Load vehicle
-        if (d.vehicle_id) {
-          void apiGet<Vehicle>(`/api/vehicles/${d.vehicle_id}`).then(setVehicle);
+        const normalized = normalizeDoc(d);
+        // Fetch vehicle registration
+        if (normalized.vehicle_id) {
+          void apiGet<Vehicle>(`/api/vehicles/${normalized.vehicle_id}`).then((v) => {
+            setVehicle(v);
+            setDoc({ ...normalized, vehicle_registration: v.registration });
+          });
+        } else {
+          setDoc(normalized);
         }
       })
       .catch(() => {});
   }, [docId]);
+
+  const handleArchive = async () => {
+    setArchiving(true);
+    try {
+      await apiDelete(`/api/documents/${docId}`);
+      appToast.success("Document archivé");
+      window.location.href = "/documents";
+    } catch (err) {
+      appToast.error("Erreur lors de l'archivage", {
+        description: getErrorMessage(err),
+      });
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   if (!doc) {
     return (
@@ -78,12 +146,12 @@ export default function DocumentDetailPage() {
   }
 
   const meta = [
-    { icon: Truck, label: "Véhicule", value: doc.vehicle_registration, mono: true },
-    { icon: FileText, label: "Type", value: doc.type },
+    { icon: Truck, label: "Véhicule", value: doc.vehicle_registration || vehicle?.registration || "—", mono: true },
+    { icon: FileText, label: "Type", value: doc.type || "—" },
     { icon: Calendar, label: "Date d'émission", value: formatDate(doc.issued_date) },
     { icon: Calendar, label: "Date d'expiration", value: formatDate(doc.expiry_date) },
-    { icon: Hash, label: "Référence", value: doc.reference ?? "—", mono: true },
-    { icon: User, label: "Uploadé par", value: doc.created_by },
+    { icon: Hash, label: "Référence", value: doc.reference || "—", mono: true },
+    { icon: User, label: "Uploadé par", value: doc.created_by || "—" },
     { icon: Clock, label: "Uploadé le", value: formatDateTime(doc.created_at) },
     { icon: Hash, label: "Taille", value: formatFileSize(doc.size) },
   ];
@@ -159,9 +227,15 @@ export default function DocumentDetailPage() {
               <Eye className="size-4" />
               Prévisualiser
             </Button>
-            <Button onClick={() => downloadMockPdf(doc.file_name)}>
-              <Download className="size-4" />
-              Télécharger
+            <a href={doc.file_url} download={doc.file_name} target="_blank" rel="noopener noreferrer">
+              <Button>
+                <Download className="size-4" />
+                Télécharger
+              </Button>
+            </a>
+            <Button variant="destructive" onClick={handleArchive} disabled={archiving}>
+              <Archive className="size-4" />
+              {archiving ? "Archivage..." : "Archiver"}
             </Button>
           </div>
         </div>
@@ -191,14 +265,12 @@ export default function DocumentDetailPage() {
                 <Eye className="size-4" />
                 Prévisualiser
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => downloadMockPdf(doc.file_name)}
-              >
-                <Download className="size-4" />
-                Télécharger
-              </Button>
+              <a href={doc.file_url} download={doc.file_name} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="w-full">
+                  <Download className="size-4" />
+                  Télécharger
+                </Button>
+              </a>
             </div>
           </CardContent>
         </Card>
@@ -320,22 +392,27 @@ export default function DocumentDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-hidden rounded-md border border-border bg-muted/40">
-            <iframe
-              src={`data:application/pdf;base64,${btoa(
-                "%PDF-1.4\n% FleetDocs mock PDF preview"
-              )}`}
-              title={doc.file_name}
-              className="w-full h-[60vh] bg-white"
-            />
+            {doc.mime_type?.startsWith("image/") ? (
+              <img
+                src={doc.file_url}
+                alt={doc.file_name}
+                className="w-full h-[60vh] object-contain bg-white"
+              />
+            ) : (
+              <iframe
+                src={doc.file_url}
+                title={doc.file_name}
+                className="w-full h-[60vh] bg-white"
+              />
+            )}
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => downloadMockPdf(doc.file_name)}
-            >
-              <Download className="size-4" />
-              Télécharger
-            </Button>
+            <a href={doc.file_url} download={doc.file_name} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline">
+                <Download className="size-4" />
+                Télécharger
+              </Button>
+            </a>
             <Button onClick={() => setPreviewOpen(false)}>Fermer</Button>
           </div>
         </DialogContent>

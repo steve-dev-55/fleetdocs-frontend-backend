@@ -55,6 +55,17 @@ export default function VehicleTypesPage() {
     setEditing(null);
   };
 
+  // Fill form when editing an item
+  React.useEffect(() => {
+    if (editing) {
+      setForm({
+        name: editing.name || "",
+        code: editing.code || "",
+        description: editing.description || "",
+      });
+    }
+  }, [editing]);
+
   const handleSave = async () => {
     if (!form.name.trim() || !form.code.trim()) {
       appToast.error("Nom et code obligatoires");
