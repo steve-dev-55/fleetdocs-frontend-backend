@@ -313,7 +313,6 @@ export default function VehicleDetailPage() {
                       <TableRow className="bg-muted/40">
                         <TableHead className="pl-6">Document</TableHead>
                         <TableHead>Échéance</TableHead>
-                        <TableHead>OCR</TableHead>
                         <TableHead className="pr-6 text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -342,13 +341,6 @@ export default function VehicleDetailPage() {
                                   {formatRelative(d.expiry_date)}
                                 </div>
                               )}
-                            </TableCell>
-                            <TableCell>
-                              <StatusBadge
-                                label={OCR_STATUS[d.ocr_status].label}
-                                color={OCR_STATUS[d.ocr_status].color}
-                                withDot
-                              />
                             </TableCell>
                             <TableCell className="pr-6 text-right">
                               <Button

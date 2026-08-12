@@ -58,16 +58,7 @@ class VehicleStatus(str, enum.Enum):
     archived = "archived"
 
 
-class OCRStatus(str, enum.Enum):
-    """Statut du traitement OCR d'un document."""
-
-    pending_ocr = "pending_ocr"
-    processing = "processing"
-    completed = "completed"
-    failed = "failed"
-    manual = "manual"
-
-
+# OCR supprimé pour le MVP — saisie manuelle uniquement
 class ValidityStatus(str, enum.Enum):
     """Statut de validité d'un document."""
 
@@ -397,9 +388,9 @@ class Document(Base):
     mime_type: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
-    ocr_status: Mapped[OCRStatus] = mapped_column(
-        SQLEnum(OCRStatus), nullable=False, default=OCRStatus.pending_ocr
-    )
+    # OCR supprimé pour le MVP — les colonnes sont gardées pour la migration
+    # mais ne sont plus utilisées. Elles seront supprimées dans une future migration.
+    ocr_status: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, default="manual")
     ocr_raw_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     ocr_confidence: Mapped[Optional[float]] = mapped_column(nullable=True)
     ocr_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)

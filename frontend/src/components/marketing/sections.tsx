@@ -8,9 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 const valueProps = [
   {
     icon: FileText,
-    title: "Upload & OCR automatique",
+    title: "Upload & saisie manuelle",
     description:
-      "Uploadez vos cartes grises, assurances et contrôles techniques. Notre OCR + IA extrait les dates clés en quelques secondes.",
+      "Uploadez vos cartes grises, assurances et contrôles techniques. Renseignez les dates clés et recevez des alertes avant expiration.",
     color: "text-blue-600",
     bg: "bg-blue-50 dark:bg-blue-950/40",
   },
@@ -89,7 +89,7 @@ const steps = [
     n: "3",
     title: "Uploadez vos documents",
     description:
-      "Glissez-déposez vos PDF. L'OCR extrait les dates automatiquement.",
+      "Glissez-déposez vos PDF et renseignez les dates.",
   },
   {
     n: "4",
@@ -146,8 +146,8 @@ export function HowItWorks() {
 
 const faqs = [
   {
-    q: "Comment fonctionne l'OCR ?",
-    a: "Notre moteur OCR (Reconnaissance Optique de Caractères) analyse vos PDF et images de documents. Il extrait automatiquement les champs clés : numéro d'immatriculation, date d'expiration, date d'émission, référence. L'IA vérifie la cohérence et attribue un score de confiance (85-98%). Vous validez en un clic.",
+    q: "Comment ajouter un document ?",
+    a: "Uploadez votre fichier (PDF, image), puis remplissez le formulaire avec le type de document, les dates d'émission et d'expiration, et la référence. Le système calcule automatiquement le statut de validité et crée des alertes avant expiration.",
   },
   {
     q: "Mes données sont-elles sécurisées ?",

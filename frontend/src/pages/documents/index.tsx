@@ -11,7 +11,7 @@ export default function DocumentsPage() {
           Documents
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Gérez tous les documents de votre flotte. OCR automatique, alertes et exports.
+          Gérez tous les documents de votre flotte. Saisie manuelle, alertes et exports.
         </p>
       </div>
       <DocumentsTable />

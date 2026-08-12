@@ -22,7 +22,7 @@ export function Hero() {
           <div>
             <Badge variant="outline" className="mb-5 gap-1.5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300">
               <span className="size-1.5 rounded-full bg-blue-500 animate-pulse" />
-              Nouveau : OCR + IA pour la carte grise
+              Nouveau : Saisie manuelle rapide
             </Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
               La conformité documentaire de votre flotte,{" "}
@@ -30,7 +30,7 @@ export function Hero() {
             </h1>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-xl">
               Uploadez vos cartes grises, assurances et contrôles techniques.
-              Notre OCR + IA extrait les dates et vous alerte avant expiration.
+              Saisissez les dates de vos documents et recevez des alertes avant expiration.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg" className="h-12 px-6 text-base">
@@ -112,7 +112,7 @@ export function Hero() {
                     />
                     <AlertRow
                       icon={<FileText className="size-4 text-blue-500" />}
-                      title="OCR en cours — licence.pdf"
+                      title="Document ajouté — licence.pdf"
                       subtitle="Traitement..."
                       tone="blue"
                     />

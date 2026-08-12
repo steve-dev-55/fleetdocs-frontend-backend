@@ -19,7 +19,6 @@ from app.models import (
     AlertSeverity,
     AlertStatus,
     AlertType,
-    OCRStatus,
     PlanType,
     SubscriptionStatus,
     UserRole,
@@ -362,7 +361,7 @@ class DocumentUpdate(BaseModel):
     issued_date: Optional[datetime] = None
     reference: Optional[str] = None
     ocr_data: Optional[Dict[str, Any]] = None
-    ocr_status: Optional[OCRStatus] = None
+    ocr_status: Optional[str] = None
     ocr_confidence: Optional[float] = None
     validity_status: Optional[ValidityStatus] = None
 
@@ -374,7 +373,7 @@ class DocumentResponse(ORMModel):
     file_size: int
     mime_type: Optional[str] = None
     version: int
-    ocr_status: OCRStatus
+    ocr_status: Optional[str] = None
     ocr_raw_text: Optional[str] = None
     ocr_confidence: Optional[float] = None
     ocr_data: Optional[Dict[str, Any]] = None
@@ -576,7 +575,7 @@ PLANS_INFO: List[PlanInfo] = [
         max_vehicles=50,
         features=[
             "Gestion de documents illimitée",
-            "OCR basique (50 documents/mois)",
+            "Documents illimités",
             "Alertes d'expiration",
             "1 utilisateur",
             "Support email",
@@ -589,7 +588,7 @@ PLANS_INFO: List[PlanInfo] = [
         max_vehicles=200,
         features=[
             "Tout le plan Starter",
-            "OCR illimité",
+            "Documents illimités",
             "Utilisateurs illimités",
             "Rôles et permissions",
             "Export PDF/Excel",

@@ -14,7 +14,6 @@ from app.models import (
     AlertStatus,
     Company,
     Document,
-    OCRStatus,
     ValidityStatus,
     Vehicle,
     VehicleStatus,
@@ -69,14 +68,7 @@ async def get_dashboard(
         )
     ).scalar_one()
 
-    pending_ocr = (
-        await db.execute(
-            select(func.count(Document.id)).where(
-                Document.company_id == company_id,
-                Document.ocr_status.in_([OCRStatus.pending_ocr, OCRStatus.processing]),
-            )
-        )
-    ).scalar_one()
+    pending_ocr = 0  # OCR supprimé pour le MVP — saisie manuelle uniquement
 
     expired_docs = (
         await db.execute(
@@ -162,7 +154,6 @@ async def get_dashboard(
     charts: Dict[str, Any] = {
         "vehicles_by_status": vehicles_by_status,
         "documents_by_validity": documents_by_validity,
-        "documents_by_ocr": documents_by_ocr,
         "alerts_by_severity": alerts_by_severity,
         "documents_timeline": documents_timeline,
     }

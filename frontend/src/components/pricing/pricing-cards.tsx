@@ -32,7 +32,7 @@ export const plans: Plan[] = [
     maxVehicles: "Jusqu'à 50 véhicules",
     description: "Pour les petites flottes qui démarrent.",
     features: [
-      "OCR illimité",
+      "Documents illimités",
       "Alertes J-90/60/30/15/7",
       "3 utilisateurs inclus",
       "Export CSV / Excel",
@@ -221,7 +221,7 @@ export function PricingCards({
 const comparisonFeatures = [
   { name: "Véhicules", starter: "50", pro: "200", enterprise: "Illimité" },
   { name: "Utilisateurs", starter: "3", pro: "10", enterprise: "Illimité" },
-  { name: "OCR illimité", starter: true, pro: true, enterprise: true },
+  { name: "Documents illimités", starter: true, pro: true, enterprise: true },
   { name: "Alertes email", starter: true, pro: true, enterprise: true },
   { name: "Export CSV/Excel", starter: true, pro: true, enterprise: true },
   { name: "Audit trail", starter: false, pro: true, enterprise: true },

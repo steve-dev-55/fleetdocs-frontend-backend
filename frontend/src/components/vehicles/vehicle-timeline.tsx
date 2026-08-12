@@ -27,7 +27,7 @@ import { EmptyVehiclesIllustration } from "@/components/illustrations/empty-stat
 
 interface TimelineEvent {
   id: string;
-  type: "document" | "status" | "alert" | "ocr" | "comment" | "photo" | "custom";
+  type: "document" | "status" | "alert" | "comment" | "comment" | "photo" | "custom";
   label: string;
   description?: string;
   timestamp: string;
@@ -38,7 +38,6 @@ const TYPE_ICONS: Record<TimelineEvent["type"], React.ElementType> = {
   document: FileText,
   status: RefreshCw,
   alert: Bell,
-  ocr: Sparkles,
   comment: MessageSquare,
   photo: Camera,
   custom: Settings,
@@ -48,7 +47,6 @@ const TYPE_COLORS: Record<TimelineEvent["type"], string> = {
   document: "bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400",
   status: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
   alert: "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
-  ocr: "bg-purple-100 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400",
   comment: "bg-green-100 text-green-600 dark:bg-green-950/40 dark:text-green-400",
   photo: "bg-pink-100 text-pink-600 dark:bg-pink-950/40 dark:text-pink-400",
   custom: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
@@ -59,7 +57,6 @@ const TYPE_LABELS: Record<string, string> = {
   document: "Documents",
   status: "Statuts",
   alert: "Alertes",
-  ocr: "OCR",
   comment: "Commentaires",
   photo: "Photos",
   custom: "Autres",

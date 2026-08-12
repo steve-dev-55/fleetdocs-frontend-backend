@@ -28,7 +28,6 @@ import {
 import { StatusBadge } from "@/components/shared/status-badge";
 import { UploadDialog } from "@/components/documents/upload-dialog";
 import {
-  OCR_STATUS,
   DOCUMENT_VALIDITY,
 } from "@/lib/status-config";
 import { exportToCsv, formatDate, formatFileSize, formatRelative, normalizeDocuments } from "@/lib/utils";
@@ -46,13 +45,6 @@ import {
   Eye,
 } from "lucide-react";
 
-const OCR_OPTIONS = [
-  { value: "all", label: "Tous les statuts OCR" },
-  ...((Object.keys(OCR_STATUS) as OcrStatus[]).map((k) => ({
-    value: k,
-    label: OCR_STATUS[k].label,
-  }))),
-];
 
 const VALIDITY_OPTIONS = [
   { value: "all", label: "Toutes validités" },
@@ -66,8 +58,7 @@ export function DocumentsTable() {
   const navigate = useNavigate();
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
-  const [ocrFilter, setOcrFilter] = React.useState<string>("all");
-  const [validityFilter, setValidityFilter] = React.useState<string>("all");
+    const [validityFilter, setValidityFilter] = React.useState<string>("all");
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [allDocuments, setAllDocuments] = React.useState<FleetDocument[]>([]);
 
@@ -104,11 +95,10 @@ export function DocumentsTable() {
       ) {
         return false;
       }
-      if (ocrFilter !== "all" && d.ocr_status !== ocrFilter) return false;
-      if (validityFilter !== "all" && d.validity !== validityFilter) return false;
+            if (validityFilter !== "all" && d.validity !== validityFilter) return false;
       return true;
     });
-  }, [allDocuments, debouncedSearch, ocrFilter, validityFilter]);
+  }, [allDocuments, debouncedSearch, validityFilter]);
 
   const allChecked =
     filtered.length > 0 && filtered.every((d) => selected.has(d.id));
@@ -138,7 +128,6 @@ export function DocumentsTable() {
         vehicle_registration: d.vehicle_registration,
         expiry_date: d.expiry_date ?? "",
         // Défensif : le backend peut renvoyer des statuts absents du dictionnaire frontend
-        ocr_status: OCR_STATUS[d.ocr_status]?.label ?? d.ocr_status,
         validity: DOCUMENT_VALIDITY[d.validity]?.label ?? d.validity,
         confidence: d.confidence ?? "",
         size: d.size,
@@ -149,7 +138,6 @@ export function DocumentsTable() {
         { key: "type", label: "Type" },
         { key: "vehicle_registration", label: "Immatriculation" },
         { key: "expiry_date", label: "Échéance" },
-        { key: "ocr_status", label: "OCR" },
         { key: "validity", label: "Validité" },
         { key: "confidence", label: "Confiance (%)" },
         { key: "size", label: "Taille (octets)" },
@@ -216,18 +204,7 @@ export function DocumentsTable() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          <Select value={ocrFilter} onValueChange={setOcrFilter}>
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="OCR" />
-            </SelectTrigger>
-            <SelectContent>
-              {OCR_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          
           <Select value={validityFilter} onValueChange={setValidityFilter}>
             <SelectTrigger className="w-[170px]">
               <SelectValue placeholder="Validité" />
@@ -298,8 +275,7 @@ export function DocumentsTable() {
                 <TableHead>Document</TableHead>
                 <TableHead>Véhicule</TableHead>
                 <TableHead className="hidden md:table-cell">Échéance</TableHead>
-                <TableHead className="hidden md:table-cell">OCR</TableHead>
-                <TableHead>Validité</TableHead>
+                                <TableHead>Validité</TableHead>
                 <TableHead className="text-right pr-4">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -346,13 +322,7 @@ export function DocumentsTable() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <StatusBadge
-                        label={OCR_STATUS[d.ocr_status]?.label ?? d.ocr_status ?? "—"}
-                        color={OCR_STATUS[d.ocr_status]?.color ?? "gray"}
-                        withDot
-                      />
-                    </TableCell>
+                    
                     <TableCell>
                       <StatusBadge
                         label={DOCUMENT_VALIDITY[d.validity]?.label ?? d.validity ?? "—"}

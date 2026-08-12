@@ -1,299 +1,377 @@
 
-
 import * as React from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import { UploadCloud, X, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn, formatFileSize } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { getErrorMessage, apiUpload } from "@/lib/api-client";
+import { apiUpload, apiGet, getErrorMessage } from "@/lib/api-client";
+import { appToast } from "@/lib/toast";
+import type { Vehicle, DocumentType } from "@/lib/types";
 
-export interface UploadFile {
+interface UploadDropzoneProps {
+  vehicleId?: string;
+  vehicleRegistration?: string;
+  documentTypeId?: string;
+  documentTypeName?: string;
+  onUploaded?: () => void;
+  onClose?: () => void;
+}
+
+interface QueuedFile {
   id: string;
   file: File;
   progress: number;
   status: "queued" | "uploading" | "done" | "error";
-  ocrDone?: boolean;
-  confidence?: number;
-}
-
-interface UploadDropzoneProps {
-  /** Vehicle id pre-selected (vehicle detail page) */
-  vehicleId?: string;
-  vehicleRegistration?: string;
-  /** Document type pre-selected */
-  documentTypeId?: string;
-  documentTypeName?: string;
-  onUploaded?: (file: UploadFile) => void;
-  onClose?: () => void;
+  previewUrl?: string;
 }
 
 export function UploadDropzone({
-  vehicleId,
+  vehicleId: defaultVehicleId,
   vehicleRegistration,
-  documentTypeId,
+  documentTypeId: defaultDocumentTypeId,
   documentTypeName,
   onUploaded,
   onClose,
 }: UploadDropzoneProps) {
   const { toast } = useToast();
-  const [files, setFiles] = React.useState<UploadFile[]>([]);
+  const [files, setFiles] = React.useState<QueuedFile[]>([]);
   const [uploading, setUploading] = React.useState(false);
 
+  // Step 2 form state (metadata form after file selection)
+  const [showForm, setShowForm] = React.useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = React.useState(defaultVehicleId ?? "");
+  const [selectedDocTypeId, setSelectedDocTypeId] = React.useState(defaultDocumentTypeId ?? "");
+  const [expiryDate, setExpiryDate] = React.useState("");
+  const [issuedDate, setIssuedDate] = React.useState("");
+  const [reference, setReference] = React.useState("");
+  const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
+  const [docTypes, setDocTypes] = React.useState<DocumentType[]>([]);
+
+  // Fetch vehicles and doc types for the form
+  React.useEffect(() => {
+    void Promise.all([
+      apiGet<Vehicle[] | { items: Vehicle[] }>("/api/vehicles").then((d) => {
+        const items = Array.isArray(d) ? d : d.items ?? [];
+        setVehicles(items);
+      }),
+      apiGet<DocumentType[] | { items: DocumentType[] }>("/api/document-types").then((d) => {
+        const items = Array.isArray(d) ? d : d.items ?? [];
+        setDocTypes(items);
+      }),
+    ]).catch(() => {});
+  }, []);
+
   const onDrop = React.useCallback(
-    (accepted: File[], rejected: FileRejection[]) => {
-      if (rejected.length) {
+    (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
+      if (rejectedFiles.length > 0) {
         toast({
-          title: "Fichiers refusés",
-          description: `${rejected.length} fichier(s) non accepté(s). PDF, PNG, JPG uniquement, max 10 Mo.`,
+          title: "Fichier rejeté",
+          description: `${rejectedFiles[0].file.name} — ${rejectedFiles[0].errors[0]?.message ?? "format non supporté"}`,
           variant: "destructive",
         });
       }
-      const newFiles: UploadFile[] = accepted.map((file) => ({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      const newFiles: QueuedFile[] = acceptedFiles.map((file) => ({
+        id: `${Date.now()}-${Math.random()}`,
         file,
         progress: 0,
-        status: "queued",
+        status: "queued" as const,
+        previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
       }));
       setFiles((prev) => [...prev, ...newFiles]);
+      setShowForm(true);
     },
     [toast]
   );
 
-  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       "application/pdf": [".pdf"],
-      "image/png": [".png"],
       "image/jpeg": [".jpg", ".jpeg"],
+      "image/png": [".png"],
+      "image/webp": [".webp"],
     },
-    maxSize: 10 * 1024 * 1024,
+    maxSize: 20 * 1024 * 1024,
     multiple: true,
-    noClick: false,
   });
 
   const removeFile = (id: string) => {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
+    setFiles((prev) => {
+      const f = prev.find((x) => x.id === id);
+      if (f?.previewUrl) URL.revokeObjectURL(f.previewUrl);
+      return prev.filter((x) => x.id !== id);
+    });
+    if (files.length <= 1) setShowForm(false);
   };
 
-  const startUpload = async () => {
-    if (!files.length) return;
-    if (!vehicleId || !documentTypeId) {
-      toast({
-        title: "Informations manquantes",
-        description: "Sélectionnez un véhicule et un type de document.",
-        variant: "destructive",
-      });
+  const handleUpload = async () => {
+    if (files.length === 0) return;
+    if (!selectedVehicleId) {
+      appToast.error("Véhicule obligatoire", { description: "Sélectionnez un véhicule." });
       return;
     }
     setUploading(true);
-    const toUpload = files.filter((f) => f.status === "queued");
-    for (const uf of toUpload) {
-      setFiles((prev) =>
-        prev.map((f) =>
-          f.id === uf.id ? { ...f, status: "uploading" } : f
-        )
-      );
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const uf of files) {
       try {
-        // Upload to backend via apiUpload (uses VITE_API_URL + JWT auth)
+        setFiles((prev) =>
+          prev.map((f) => (f.id === uf.id ? { ...f, status: "uploading", progress: 10 } : f))
+        );
+
         const formData = new FormData();
         formData.append("file", uf.file);
-        formData.append("vehicle_id", vehicleId);
-        formData.append("document_type_id", documentTypeId);
-        await apiUpload(`/api/documents/upload`, formData);
+        formData.append("vehicle_id", selectedVehicleId);
+        if (selectedDocTypeId) formData.append("document_type_id", selectedDocTypeId);
+        if (expiryDate) formData.append("expiry_date", `${expiryDate}T00:00:00Z`);
+        if (issuedDate) formData.append("issued_date", `${issuedDate}T00:00:00Z`);
+        if (reference) formData.append("reference", reference);
+
+        await apiUpload("/api/documents/upload", formData);
+
         // Animate progress
-        for (let pct = 10; pct <= 100; pct += 15) {
-          await new Promise((r) => setTimeout(r, 30));
+        for (let pct = 20; pct <= 100; pct += 20) {
+          await new Promise((r) => setTimeout(r, 50));
           setFiles((prev) =>
-            prev.map((f) =>
-              f.id === uf.id ? { ...f, progress: pct } : f
-            )
+            prev.map((f) => (f.id === uf.id ? { ...f, progress: pct } : f))
           );
         }
+
         setFiles((prev) =>
-          prev.map((f) =>
-            f.id === uf.id ? { ...f, status: "done", progress: 100 } : f
-          )
+          prev.map((f) => (f.id === uf.id ? { ...f, status: "done", progress: 100 } : f))
         );
-        // MVP: OCR désactivé — saisie manuelle uniquement
-        // L'utilisateur devra saisir les dates dans le détail du document
-        toast({
-          title: "Document uploadé",
-          description: `${uf.file.name} — prêt pour saisie manuelle`,
-        });
-        onUploaded?.(uf);
+        successCount++;
       } catch (err) {
         setFiles((prev) =>
-          prev.map((f) =>
-            f.id === uf.id ? { ...f, status: "error" } : f
-          )
+          prev.map((f) => (f.id === uf.id ? { ...f, status: "error" } : f))
         );
-        toast({
-          title: "Upload échoué",
-          description:
-            getErrorMessage(err),
-          variant: "destructive",
-        });
+        errorCount++;
       }
     }
+
     setUploading(false);
-    const okCount = files.filter((f) => f.status === "done").length;
-    if (okCount > 0) {
-      toast({
-        title: "Upload terminé",
-        description: `${okCount} fichier(s) uploadé(s).`,
+
+    if (successCount > 0) {
+      appToast.success(`${successCount} document(s) ajouté(s)`, {
+        description: "Vos documents sont maintenant disponibles dans la liste.",
       });
+      onUploaded?.();
+    }
+    if (errorCount > 0) {
+      appToast.error(`${errorCount} erreur(s) lors de l'upload`);
+    }
+
+    // Auto-close after successful upload
+    if (errorCount === 0 && successCount > 0) {
+      setTimeout(() => {
+        onClose?.();
+      }, 1500);
     }
   };
 
   const doneCount = files.filter((f) => f.status === "done").length;
-  const pendingCount = files.filter((f) => f.status === "queued").length;
 
   return (
     <div className="space-y-4">
-      {/* Context info */}
-      {(vehicleRegistration || documentTypeName) && (
-        <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
-          {vehicleRegistration && (
-            <div>
-              🚛 Véhicule pré-sélectionné :{" "}
-              <span className="font-mono font-semibold">
-                {vehicleRegistration}
-              </span>
-            </div>
+      {/* Step 1: Dropzone */}
+      {!showForm || files.length === 0 ? (
+        <div
+          {...getRootProps()}
+          className={cn(
+            "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
+            isDragActive
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-primary/50 hover:bg-muted/40"
           )}
-          {documentTypeName && (
-            <div>
-              📄 Type de document :{" "}
-              <span className="font-semibold">{documentTypeName}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Dropzone */}
-      <div
-        {...getRootProps()}
-        className={cn(
-          "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
-          isDragActive
-            ? "border-primary bg-primary/5"
-            : "border-border bg-muted/30 hover:bg-muted/50"
-        )}
-      >
-        <input {...getInputProps()} />
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <UploadCloud className="size-6 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {isDragActive
-                ? "Déposez vos fichiers ici"
-                : "Glissez-déposez vos fichiers ici"}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              ou{" "}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  open();
-                }}
-                className="text-primary hover:underline font-medium"
-              >
-                parcourez vos fichiers
-              </button>
-            </p>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            PDF, PNG, JPG · max 10 Mo · plusieurs fichiers acceptés
+        >
+          <input {...getInputProps()} />
+          <UploadCloud className="size-10 mx-auto text-muted-foreground mb-3" />
+          <p className="text-sm font-medium text-foreground">
+            {isDragActive ? "Déposez les fichiers ici" : "Glissez-déposez vos fichiers ici"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            ou parcourez vos fichiers — PDF, PNG, JPG · max 20 Mo
           </p>
         </div>
-      </div>
+      ) : null}
 
-      {/* Files list */}
+      {/* File list */}
       {files.length > 0 && (
-        <div className="space-y-2 max-h-72 overflow-y-auto scrollbar-thin pr-1">
-          {files.map((f) => (
-            <div
-              key={f.id}
-              className="flex items-center gap-3 rounded-md border border-border bg-card p-3"
-            >
-              <div className="size-9 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                <FileText className="size-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-foreground">
+              {files.length} fichier(s) sélectionné(s)
+            </h4>
+            {doneCount > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {doneCount} uploadé(s)
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin">
+            {files.map((f) => (
+              <div
+                key={f.id}
+                className="flex items-center gap-3 rounded-lg border border-border p-3 bg-card"
+              >
+                {f.previewUrl ? (
+                  <img src={f.previewUrl} alt={f.file.name} className="size-10 rounded object-cover" />
+                ) : (
+                  <div className="size-10 rounded bg-muted flex items-center justify-center">
+                    <FileText className="size-5 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
                     {f.file.name}
                   </p>
-                  <button
-                    type="button"
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(f.file.size)}
+                    {f.status === "uploading" && ` · ${f.progress}%`}
+                    {f.status === "done" && " · ✓ Uploadé"}
+                    {f.status === "error" && " · ✗ Erreur"}
+                  </p>
+                  {f.status === "uploading" && (
+                    <Progress value={f.progress} className="h-1 mt-1" />
+                  )}
+                </div>
+                {f.status === "queued" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => removeFile(f.id)}
-                    disabled={uploading && f.status === "uploading"}
-                    className="text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-30"
-                    aria-label="Retirer"
+                    className="size-8"
                   >
                     <X className="size-4" />
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {formatFileSize(f.file.size)}
-                </p>
-                {f.status === "uploading" && (
-                  <Progress value={f.progress} className="mt-2 h-1.5" />
+                  </Button>
                 )}
                 {f.status === "done" && (
-                  <div className="mt-1.5 flex items-center gap-2 text-xs">
-                    <CheckCircle2 className="size-3.5 text-green-600" />
-                    <span className="text-green-600">Uploadé</span>
-                    {f.ocrDone ? (
-                      <>
-                        <span className="text-muted-foreground">·</span>
-                        <span className="text-blue-600">
-                          OCR terminé — {f.confidence}% confiance
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-muted-foreground">·</span>
-                        <span className="inline-flex items-center gap-1 text-amber-600">
-                          <Loader2 className="size-3 animate-spin" />
-                          OCR en cours...
-                        </span>
-                      </>
-                    )}
-                  </div>
+                  <CheckCircle2 className="size-5 text-green-600" />
                 )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Actions */}
-      {files.length > 0 && (
-        <div className="flex items-center justify-between gap-3 pt-2">
-          <p className="text-xs text-muted-foreground">
-            {doneCount} uploadé(s) · {pendingCount} en attente
-          </p>
-          <div className="flex gap-2">
+      {/* Step 2: Metadata form (shown after files are selected) */}
+      {showForm && files.length > 0 && doneCount === 0 && (
+        <div className="space-y-4 rounded-lg border border-border p-4 bg-muted/30">
+          <div>
+            <h4 className="text-sm font-semibold text-foreground mb-1">
+              Informations du document
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Renseignez les informations ci-dessous pour chaque document.
+            </p>
+          </div>
+
+          {/* Vehicle + Doc type */}
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Véhicule *</Label>
+              <Select
+                value={selectedVehicleId}
+                onValueChange={setSelectedVehicleId}
+                disabled={Boolean(defaultVehicleId)}
+              >
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue placeholder="Sélectionner..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicles.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      <span className="font-mono">{v.registration}</span>
+                      {" — "}
+                      {v.brand} {v.model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Type de document</Label>
+              <Select
+                value={selectedDocTypeId}
+                onValueChange={setSelectedDocTypeId}
+                disabled={Boolean(defaultDocumentTypeId)}
+              >
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue placeholder="Sélectionner..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {docTypes.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Dates + reference */}
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Date d'émission</Label>
+              <Input
+                type="date"
+                value={issuedDate}
+                onChange={(e) => setIssuedDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Date d'expiration</Label>
+              <Input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Référence</Label>
+              <Input
+                type="text"
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                placeholder="N° doc..."
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          {/* Upload button */}
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => {
-                if (onClose) onClose();
-                else setFiles([]);
+                files.forEach((f) => {
+                  if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+                });
+                setFiles([]);
+                setShowForm(false);
               }}
-              disabled={uploading}
             >
-              {onClose ? "Fermer" : "Vider"}
+              Annuler
             </Button>
-            <Button
-              onClick={startUpload}
-              disabled={uploading || pendingCount === 0}
-            >
+            <Button onClick={handleUpload} disabled={uploading || !selectedVehicleId}>
               {uploading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
@@ -302,8 +380,7 @@ export function UploadDropzone({
               ) : (
                 <>
                   <UploadCloud className="size-4" />
-                  Uploader {pendingCount > 0 ? `${pendingCount} ` : ""}
-                  fichier{pendingCount > 1 ? "s" : ""}
+                  Uploader {files.length} fichier(s)
                 </>
               )}
             </Button>

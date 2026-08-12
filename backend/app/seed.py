@@ -33,7 +33,6 @@ from app.models import (
     Company,
     Document,
     DocumentType,
-    OCRStatus,
     PlanType,
     Subscription,
     SubscriptionStatus,
@@ -389,34 +388,34 @@ async def seed_demo_data(db):
     # Génère 25 documents répartis sur les véhicules
     documents = []
     doc_configs = [
-        # (vehicle_index, doc_type_code, validity, expiry_offset_days, ocr_status)
-        (0, "CARTE_GRISE", ValidityStatus.valid, 365, OCRStatus.completed),
-        (0, "ASSURANCE", ValidityStatus.valid, 120, OCRStatus.completed),
-        (0, "CT", ValidityStatus.expiring_soon, 20, OCRStatus.completed),
-        (0, "VIGNETTE", ValidityStatus.valid, 300, OCRStatus.completed),
-        (1, "CARTE_GRISE", ValidityStatus.valid, 400, OCRStatus.completed),
-        (1, "ASSURANCE", ValidityStatus.expired, -10, OCRStatus.completed),
-        (1, "CT", ValidityStatus.valid, 200, OCRStatus.completed),
-        (2, "CARTE_GRISE", ValidityStatus.valid, 500, OCRStatus.completed),
-        (2, "ASSURANCE", ValidityStatus.expiring_soon, 15, OCRStatus.completed),
-        (2, "CT", ValidityStatus.expired, -30, OCRStatus.completed),
-        (2, "FIMO", ValidityStatus.valid, 250, OCRStatus.manual),
-        (2, "VIGNETTE", ValidityStatus.valid, 180, OCRStatus.completed),
-        (3, "CARTE_GRISE", ValidityStatus.valid, 350, OCRStatus.completed),
-        (3, "ASSURANCE", ValidityStatus.valid, 90, OCRStatus.completed),
-        (3, "CT", ValidityStatus.unknown, None, OCRStatus.pending_ocr),
-        (4, "CARTE_GRISE", ValidityStatus.valid, 280, OCRStatus.completed),
-        (4, "ASSURANCE", ValidityStatus.expiring_soon, 8, OCRStatus.completed),
-        (4, "CT", ValidityStatus.valid, 150, OCRStatus.completed),
-        (4, "FIMO", ValidityStatus.valid, 320, OCRStatus.manual),
-        (5, "CARTE_GRISE", ValidityStatus.valid, 600, OCRStatus.completed),
-        (5, "ASSURANCE", ValidityStatus.valid, 340, OCRStatus.completed),
-        (5, "VIGNETTE", ValidityStatus.valid, 290, OCRStatus.completed),
-        (6, "CARTE_GRISE", ValidityStatus.valid, 200, OCRStatus.completed),
-        (6, "ASSURANCE", ValidityStatus.expired, -45, OCRStatus.completed),
-        (7, "CARTE_GRISE", ValidityStatus.valid, 450, OCRStatus.completed),
-        (7, "ASSURANCE", ValidityStatus.valid, 110, OCRStatus.completed),
-        (7, "CT", ValidityStatus.valid, 220, OCRStatus.completed),
+        # (vehicle_index, doc_type_code, validity, expiry_offset_days)
+        (0, "CARTE_GRISE", ValidityStatus.valid, 365, "manual"),
+        (0, "ASSURANCE", ValidityStatus.valid, 120, "manual"),
+        (0, "CT", ValidityStatus.expiring_soon, 20, "manual"),
+        (0, "VIGNETTE", ValidityStatus.valid, 300, "manual"),
+        (1, "CARTE_GRISE", ValidityStatus.valid, 400, "manual"),
+        (1, "ASSURANCE", ValidityStatus.expired, -10, "manual"),
+        (1, "CT", ValidityStatus.valid, 200, "manual"),
+        (2, "CARTE_GRISE", ValidityStatus.valid, 500, "manual"),
+        (2, "ASSURANCE", ValidityStatus.expiring_soon, 15, "manual"),
+        (2, "CT", ValidityStatus.expired, -30, "manual"),
+        (2, "FIMO", ValidityStatus.valid, 250, "manual"),
+        (2, "VIGNETTE", ValidityStatus.valid, 180, "manual"),
+        (3, "CARTE_GRISE", ValidityStatus.valid, 350, "manual"),
+        (3, "ASSURANCE", ValidityStatus.valid, 90, "manual"),
+        (3, "CT", ValidityStatus.unknown, None, "manual"),
+        (4, "CARTE_GRISE", ValidityStatus.valid, 280, "manual"),
+        (4, "ASSURANCE", ValidityStatus.expiring_soon, 8, "manual"),
+        (4, "CT", ValidityStatus.valid, 150, "manual"),
+        (4, "FIMO", ValidityStatus.valid, 320, "manual"),
+        (5, "CARTE_GRISE", ValidityStatus.valid, 600, "manual"),
+        (5, "ASSURANCE", ValidityStatus.valid, 340, "manual"),
+        (5, "VIGNETTE", ValidityStatus.valid, 290, "manual"),
+        (6, "CARTE_GRISE", ValidityStatus.valid, 200, "manual"),
+        (6, "ASSURANCE", ValidityStatus.expired, -45, "manual"),
+        (7, "CARTE_GRISE", ValidityStatus.valid, 450, "manual"),
+        (7, "ASSURANCE", ValidityStatus.valid, 110, "manual"),
+        (7, "CT", ValidityStatus.valid, 220, "manual"),
     ]
 
     for idx, (v_idx, dt_code, validity, expiry_days, ocr_st) in enumerate(doc_configs):
@@ -436,17 +435,17 @@ async def seed_demo_data(db):
             ocr_status=ocr_st,
             ocr_raw_text=(
                 f"Document: {doc_type.name}\nVéhicule: {vehicle.registration}\n"
-                if ocr_st == OCRStatus.completed
+                if ocr_st == "manual"
                 else None
             ),
-            ocr_confidence=0.92 if ocr_st == OCRStatus.completed else None,
+            ocr_confidence=0.92 if ocr_st == "manual" else None,
             ocr_data=(
                 {
                     "document_type": doc_type.name,
                     "registration": vehicle.registration,
                     "expiry_date": expiry.isoformat() if expiry else None,
                 }
-                if ocr_st == OCRStatus.completed
+                if ocr_st == "manual"
                 else None
             ),
             validity_status=validity,

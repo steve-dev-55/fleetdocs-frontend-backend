@@ -28,7 +28,6 @@ from app.models import (
     Company,
     Document,
     DocumentType,
-    OCRStatus,
     ShareLink,
     User,
     ValidityStatus,
@@ -146,7 +145,7 @@ def _doc_to_response(doc: Document) -> DocumentResponse:
 @router.get("", response_model=List[DocumentResponse])
 async def list_documents(
     search: Optional[str] = None,
-    ocr_status: Optional[OCRStatus] = None,
+    ocr_status: Optional[str] = None,
     validity_status: Optional[ValidityStatus] = None,
     vehicle_id: Optional[UUID] = None,
     document_type_id: Optional[UUID] = None,
@@ -236,11 +235,6 @@ async def upload_document(
 
     file_url = f"{settings.base_url}/uploads/{safe_name}"
 
-    # MVP : saisie manuelle uniquement (OCR désactivé pour le MVP)
-    # L'utilisateur devra saisir les dates manuellement après upload.
-    # Pour réactiver l'OCR plus tard : set MISTRAL_API_KEY + décommenter le bloc OCR ci-dessous
-    ocr_status = OCRStatus.manual
-
     # Calcule le statut de validité
     validity = _compute_validity_status(expiry_date)
 
@@ -249,7 +243,7 @@ async def upload_document(
         file_url=file_url,
         file_size=len(contents),
         mime_type=file.content_type,
-        ocr_status=ocr_status,
+        ocr_status="manual",
         validity_status=validity,
         expiry_date=expiry_date,
         issued_date=issued_date,
@@ -265,15 +259,6 @@ async def upload_document(
     # Déclenche les alertes si nécessaire
     await _trigger_alerts_for_document(db, doc, vehicle)
 
-    # OCR désactivé pour le MVP — saisie manuelle uniquement
-    # Pour réactiver plus tard :
-    # if settings.MISTRAL_API_KEY:
-    #     try:
-    #         await _run_ocr(doc, contents, file.content_type)
-    #     except Exception:
-    #         doc.ocr_status = OCRStatus.failed
-    #         db.add(Alert(...))
-
     await db.commit()
 
     # Recharge le document avec ses relations (évite MissingGreenlet à la sérialisation)
@@ -286,69 +271,7 @@ async def upload_document(
     return _doc_to_response(doc)
 
 
-async def _run_ocr(doc: Document, file_bytes: bytes, mime_type: Optional[str]):
-    """Appelle l'API Mistral pour l'OCR (implémentation simplifiée).
-
-    En production, utilisez l'endpoint Mistral OCR dédié.
-    """
-    import base64
-
-    import httpx
-
-    if not settings.MISTRAL_API_KEY:
-        return
-
-    doc.ocr_status = OCRStatus.processing
-
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            # Note : l'endpoint exact dépend de l'API Mistral OCR.
-            # Ici on utilise l'endpoint de chat avec un modèle vision.
-            b64 = base64.b64encode(file_bytes).decode("utf-8")
-            payload = {
-                "model": "mistral-small-latest",
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": "Extrais toutes les informations de ce document "
-                                "(numéro, dates d'émission et d'expiration, titulaire, etc.). "
-                                "Réponds en JSON.",
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": f"data:{mime_type or 'application/octet-stream'};base64,{b64}",
-                            },
-                        ],
-                    }
-                ],
-            }
-            headers = {
-                "Authorization": f"Bearer {settings.MISTRAL_API_KEY}",
-                "Content-Type": "application/json",
-            }
-            resp = await client.post(
-                "https://api.mistral.ai/v1/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            text = (
-                data.get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", "")
-            )
-            doc.ocr_raw_text = text[:10000]
-            doc.ocr_confidence = 0.85  # Valeur estimée
-            doc.ocr_data = {"raw": text[:5000]}
-            doc.ocr_status = OCRStatus.completed
-    except Exception as e:
-        doc.ocr_status = OCRStatus.failed
-        doc.ocr_data = {"error": str(e)}
-        raise
+# OCR supprimé pour le MVP
 
 
 # ---------------------------------------------------------------------------

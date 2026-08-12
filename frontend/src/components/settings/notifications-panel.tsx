@@ -65,13 +65,6 @@ const initialPrefs: Pref[] = [
     inApp: true,
   },
   {
-    id: "ocr_failed",
-    label: "Échec OCR",
-    description: "Quand l'OCR n'arrive pas à extraire une date.",
-    email: false,
-    inApp: true,
-  },
-  {
     id: "vehicle_broken",
     label: "Véhicule en panne",
     description: "Quand un véhicule est signalé en panne.",
@@ -96,7 +89,7 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   expired: "Document expiré",
   expiring_30: "Expire dans 30 jours",
   vehicle_broken: "Véhicule en panne",
-  ocr_failed: "Échec OCR",
+  
 };
 
 export function NotificationsPanel() {

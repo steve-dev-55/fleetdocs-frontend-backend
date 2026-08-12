@@ -14,7 +14,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  OCR_STATUS,
   DOCUMENT_VALIDITY,
   type ColorKey,
 } from "@/lib/status-config";
@@ -157,10 +156,7 @@ export default function DocumentDetailPage() {
     { icon: Hash, label: "Taille", value: formatFileSize(doc.size) },
   ];
 
-  const ocrStatusInfo = OCR_STATUS[doc.ocr_status] ?? {
-    label: "OCR inconnu",
-    color: "gray" as ColorKey,
-  };
+
   const validityInfo = DOCUMENT_VALIDITY[doc.validity] ?? {
     label: "Validité inconnue",
     color: "gray" as ColorKey,
@@ -170,17 +166,7 @@ export default function DocumentDetailPage() {
     { at: doc.created_at, label: "Document uploadé", icon: Upload },
     {
       at: doc.created_at,
-      label: `OCR démarré — type détecté : ${doc.type}`,
-      icon: Sparkles,
-    },
-    {
-      at: doc.created_at,
-      label: `OCR terminé — confiance ${doc.confidence ?? "—"}%`,
-      icon: Sparkles,
-    },
-    {
-      at: doc.created_at,
-      label: `Statut : ${ocrStatusInfo.label}`,
+      label: `Type : ${doc.type}`,
       icon: FileText,
     },
   ];
@@ -205,11 +191,7 @@ export default function DocumentDetailPage() {
                 {doc.file_name}
               </h1>
               <div className="mt-2 flex items-center gap-2 flex-wrap">
-                <StatusBadge
-                  label={ocrStatusInfo.label}
-                  color={ocrStatusInfo.color}
-                  withDot
-                />
+
                 <StatusBadge
                   label={validityInfo.label}
                   color={validityInfo.color}
@@ -330,7 +312,7 @@ export default function DocumentDetailPage() {
         {/* Right: OCR + history */}
         <Card className="rounded-xl lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-base">OCR & Historique</CardTitle>
+            <CardTitle className="text-base">Historique</CardTitle>
           </CardHeader>
           <CardContent>
             {doc.confidence !== undefined && (

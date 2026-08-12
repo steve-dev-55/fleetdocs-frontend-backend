@@ -26,7 +26,7 @@ const STEPS: Step[] = [
   {
     target: "[data-tour='upload-button']",
     content:
-      "Uploadez vos documents (carte grise, assurance, contrôle technique) ici. Notre OCR extrait automatiquement les dates d'expiration.",
+      "Uploadez vos documents (carte grise, assurance, contrôle technique) ici. Uploadez vos documents et renseignez les dates d'expiration.",
     title: "Uploader des documents",
   },
   {

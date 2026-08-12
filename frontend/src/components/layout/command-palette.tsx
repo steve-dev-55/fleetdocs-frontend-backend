@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { apiGet, getErrorMessage } from "@/lib/api-client";
 import type { Vehicle, FleetDocument, Alert } from "@/lib/types";
-import { VEHICLE_STATUS, OCR_STATUS, ALERT_TYPES } from "@/lib/status-config";
+import { VEHICLE_STATUS, ALERT_TYPES } from "@/lib/status-config";
 
 const CommandPaletteContext = React.createContext<{
   open: boolean;
@@ -228,7 +228,7 @@ function CommandPaletteInner() {
                   <FileText className="size-4" />
                   <span className="truncate">{d.file_name}</span>
                   <span className="ml-auto text-xs text-muted-foreground">
-                    {OCR_STATUS[d.ocr_status].label}
+                    {"—"}
                   </span>
                 </CommandItem>
               ))}
