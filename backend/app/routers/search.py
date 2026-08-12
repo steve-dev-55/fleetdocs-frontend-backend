@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.deps import get_current_company
 from app.models import Alert, Company, Document, Vehicle
+from app.routers.documents import _doc_to_response
 from app.schemas import (
     AlertResponse,
     DocumentResponse,
@@ -50,7 +51,7 @@ async def global_search(
     # Documents
     docs_result = await db.execute(
         select(Document)
-        .options(selectinload(Document.document_type))
+        .options(selectinload(Document.document_type), selectinload(Document.uploaded_by))
         .where(
             Document.company_id == company.id,
             or_(
@@ -62,7 +63,7 @@ async def global_search(
         .limit(limit)
     )
     documents = [
-        DocumentResponse.model_validate(d) for d in docs_result.scalars().all()
+        _doc_to_response(d) for d in docs_result.scalars().all()
     ]
 
     # Alertes

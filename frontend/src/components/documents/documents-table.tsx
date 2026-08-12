@@ -32,7 +32,7 @@ import {
   DOCUMENT_VALIDITY,
 } from "@/lib/status-config";
 import { exportToCsv, formatDate, formatFileSize, formatRelative, normalizeDocuments } from "@/lib/utils";
-import { apiGet, getErrorMessage } from "@/lib/api-client";
+import { apiGet, apiDelete, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import type { OcrStatus, DocumentValidity, FleetDocument } from "@/lib/types";
 import {
@@ -158,6 +158,49 @@ export function DocumentsTable() {
     );
   };
 
+  const handleArchiveOne = async (id: string) => {
+    try {
+      await apiDelete(`/api/documents/${id}`);
+      appToast.success("Document archivé");
+      // Refresh list
+      const data = await apiGet<any>("/api/documents");
+      const items: any[] = Array.isArray(data) ? data : (data as any).items ?? [];
+      setAllDocuments(normalizeDocuments(items) as unknown as FleetDocument[]);
+      setSelected(new Set());
+    } catch (err) {
+      appToast.error("Erreur lors de l'archivage", {
+        description: getErrorMessage(err),
+      });
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    const ids = Array.from(selected);
+    let successCount = 0;
+    let errorCount = 0;
+    for (const id of ids) {
+      try {
+        await apiDelete(`/api/documents/${id}`);
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+    if (successCount > 0) {
+      appToast.success(`${successCount} document(s) archivé(s)`);
+    }
+    if (errorCount > 0) {
+      appToast.error(`${errorCount} erreur(s) lors de l'archivage`);
+    }
+    // Refresh list
+    try {
+      const data = await apiGet<any>("/api/documents");
+      const items: any[] = Array.isArray(data) ? data : (data as any).items ?? [];
+      setAllDocuments(normalizeDocuments(items) as unknown as FleetDocument[]);
+    } catch {}
+    setSelected(new Set());
+  };
+
   return (
     <div className="space-y-4">
       {/* Filters + upload */}
@@ -220,7 +263,7 @@ export function DocumentsTable() {
             sélectionné(s)
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleBulkArchive}>
               <Archive className="size-4" />
               Archiver
             </Button>
@@ -334,6 +377,19 @@ export function DocumentsTable() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Voir le détail</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleArchiveOne(d.id)}
+                            >
+                              <Archive className="size-4" />
+                              <span className="sr-only">Archiver</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Archiver</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     </TableCell>

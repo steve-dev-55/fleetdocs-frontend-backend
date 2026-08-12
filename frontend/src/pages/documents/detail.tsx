@@ -71,6 +71,7 @@ interface BackendDocument {
   document_type?: { name: string; code: string } | null;
   vehicle_id: string;
   uploaded_by_id?: string;
+  uploaded_by_name?: string;
   created_at: string;
 }
 
@@ -91,7 +92,7 @@ function normalizeDoc(d: BackendDocument): FleetDocument {
     mime_type: d.mime_type ?? "application/octet-stream",
     confidence: d.ocr_confidence,
     version: d.version,
-    created_by: d.uploaded_by_id ?? "—",
+    created_by: d.uploaded_by_name ?? "—",
     created_at: d.created_at,
     reference: d.reference,
   };

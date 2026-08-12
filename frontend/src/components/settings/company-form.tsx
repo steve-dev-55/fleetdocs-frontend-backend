@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import { apiPut, getErrorMessage } from "@/lib/api-client";
 import { Loader2, Save, Upload, X } from "lucide-react";
 
 export function CompanyForm() {
@@ -74,18 +75,30 @@ export function CompanyForm() {
     e.preventDefault();
     setLoading(true);
     try {
-      await new Promise((r) => setTimeout(r, 600));
-      updateCompany({
+      const updated = await apiPut<{
+        id: string;
+        name: string;
+        siret?: string;
+        address?: string;
+        phone?: string;
+        city?: string;
+        country?: string;
+      }>("/api/settings/company", {
         name,
         siret,
-        vat_number: vat,
         address,
-        postal_code: postalCode,
         city,
       });
+      updateCompany(updated);
       toast({
         title: "Entreprise mise à jour",
         description: "Les informations ont été enregistrées.",
+      });
+    } catch (err) {
+      toast({
+        title: "Erreur",
+        description: getErrorMessage(err),
+        variant: "destructive",
       });
     } finally {
       setLoading(false);

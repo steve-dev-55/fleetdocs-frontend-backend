@@ -56,7 +56,10 @@ async def _get_document_or_404(
 ) -> Document:
     result = await db.execute(
         select(Document)
-        .options(selectinload(Document.document_type))
+        .options(
+            selectinload(Document.document_type),
+            selectinload(Document.uploaded_by),
+        )
         .where(Document.id == document_id, Document.company_id == company_id)
     )
     doc = result.scalar_one_or_none()
@@ -83,7 +86,24 @@ def _compute_validity_status(expiry_date: Optional[datetime]) -> ValidityStatus:
 async def _trigger_alerts_for_document(
     db: AsyncSession, doc: Document, vehicle: Vehicle
 ):
-    """Crée des alertes si le document est expiré ou expire bientôt."""
+    """Met à jour les alertes pour un document.
+    
+    1. Résout (marque comme résolue) toutes les alertes actives existantes pour ce document
+    2. Crée de nouvelles alertes si le document est expiré ou expire bientôt
+    """
+    # 1. Résoudre les anciennes alertes actives pour ce document
+    old_alerts_result = await db.execute(
+        select(Alert).where(
+            Alert.document_id == doc.id,
+            Alert.status == AlertStatus.active,
+        )
+    )
+    for old_alert in old_alerts_result.scalars().all():
+        old_alert.status = AlertStatus.resolved
+        old_alert.resolved_at = datetime.now(timezone.utc)
+        old_alert.resolution_comment = "Alerte résolue automatiquement (document mis à jour)"
+
+    # 2. Créer de nouvelles alertes si nécessaire
     if doc.validity_status == ValidityStatus.expired:
         alert = Alert(
             type=AlertType.document_expired,
@@ -110,6 +130,14 @@ async def _trigger_alerts_for_document(
         db.add(alert)
 
 
+
+def _doc_to_response(doc: Document) -> DocumentResponse:
+    """Convertit un Document en DocumentResponse avec uploaded_by_name."""
+    resp = DocumentResponse.model_validate(doc)
+    if doc.uploaded_by:
+        resp.uploaded_by_name = f"{doc.uploaded_by.first_name} {doc.uploaded_by.last_name}"
+    return resp
+
 # ---------------------------------------------------------------------------
 # Liste
 # ---------------------------------------------------------------------------
@@ -129,7 +157,7 @@ async def list_documents(
     """Liste les documents avec filtres."""
     query = (
         select(Document)
-        .options(selectinload(Document.document_type))
+        .options(selectinload(Document.document_type), selectinload(Document.uploaded_by))
         .where(Document.company_id == company.id)
     )
 
@@ -155,7 +183,7 @@ async def list_documents(
 
     result = await db.execute(query)
     documents = result.scalars().all()
-    return [DocumentResponse.model_validate(d) for d in documents]
+    return [_doc_to_response(d) for d in documents]
 
 
 # ---------------------------------------------------------------------------
@@ -251,11 +279,11 @@ async def upload_document(
     # Recharge le document avec ses relations (évite MissingGreenlet à la sérialisation)
     result = await db.execute(
         select(Document)
-        .options(selectinload(Document.document_type))
+        .options(selectinload(Document.document_type), selectinload(Document.uploaded_by))
         .where(Document.id == doc.id)
     )
     doc = result.scalar_one()
-    return DocumentResponse.model_validate(doc)
+    return _doc_to_response(doc)
 
 
 async def _run_ocr(doc: Document, file_bytes: bytes, mime_type: Optional[str]):
@@ -336,7 +364,7 @@ async def get_document(
 ):
     """Détail d'un document."""
     doc = await _get_document_or_404(db, document_id, company.id)
-    return DocumentResponse.model_validate(doc)
+    return _doc_to_response(doc)
 
 
 # ---------------------------------------------------------------------------
@@ -376,11 +404,11 @@ async def update_document(
     # Recharge le document avec ses relations (évite MissingGreenlet à la sérialisation)
     result = await db.execute(
         select(Document)
-        .options(selectinload(Document.document_type))
+        .options(selectinload(Document.document_type), selectinload(Document.uploaded_by))
         .where(Document.id == doc.id)
     )
     doc = result.scalar_one()
-    return DocumentResponse.model_validate(doc)
+    return _doc_to_response(doc)
 
 
 # ---------------------------------------------------------------------------
