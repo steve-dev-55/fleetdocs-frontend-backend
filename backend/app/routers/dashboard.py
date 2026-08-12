@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -119,13 +120,13 @@ async def get_dashboard(
     )
     documents_by_validity = {s.value: c for s, c in validity_result.all()}
 
-    # Documents par statut OCR
+    # Documents par statut OCR (colonne maintenant varchar, pas un enum)
     ocr_result = await db.execute(
         select(Document.ocr_status, func.count(Document.id))
         .where(Document.company_id == company_id)
         .group_by(Document.ocr_status)
     )
-    documents_by_ocr = {s.value: c for s, c in ocr_result.all()}
+    documents_by_ocr = {str(s) if s else "manual": c for s, c in ocr_result.all()}
 
     # Alertes par sévérité
     severity_result = await db.execute(
@@ -172,17 +173,18 @@ async def get_dashboard(
     # --- Documents récents ---
     recent_docs_result = await db.execute(
         select(Document)
+        .options(selectinload(Document.document_type), selectinload(Document.uploaded_by))
         .where(Document.company_id == company_id)
         .order_by(Document.created_at.desc())
         .limit(5)
     )
-    recent_documents = [
-        DocumentResponse.model_validate(d) for d in recent_docs_result.scalars().all()
-    ]
+    from app.routers.documents import _doc_to_response
+    recent_documents = [_doc_to_response(d) for d in recent_docs_result.scalars().all()]
 
     # --- Documents expirant bientôt ---
     expiring_result = await db.execute(
         select(Document)
+        .options(selectinload(Document.document_type), selectinload(Document.uploaded_by))
         .where(
             Document.company_id == company_id,
             Document.validity_status == ValidityStatus.expiring_soon,
@@ -190,9 +192,7 @@ async def get_dashboard(
         .order_by(Document.expiry_date.asc())
         .limit(5)
     )
-    expiring_documents = [
-        DocumentResponse.model_validate(d) for d in expiring_result.scalars().all()
-    ]
+    expiring_documents = [_doc_to_response(d) for d in expiring_result.scalars().all()]
 
     return DashboardResponse(
         kpis=kpis,

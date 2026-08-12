@@ -144,6 +144,7 @@ class Company(Base):
     )
     max_vehicles: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
     address: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    postal_code: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     city: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     country: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)

@@ -143,6 +143,7 @@ class CompanyResponse(ORMModel):
     plan: PlanType
     max_vehicles: int
     address: Optional[str] = None
+    postal_code: Optional[str] = None
     phone: Optional[str] = None
     city: Optional[str] = None
     country: Optional[str] = None
@@ -481,6 +482,7 @@ class CompanyUpdate(BaseModel):
     siret: Optional[str] = Field(None, max_length=64)
     logo_url: Optional[str] = None
     address: Optional[str] = None
+    postal_code: Optional[str] = Field(None, max_length=20)
     phone: Optional[str] = None
     city: Optional[str] = None
     country: Optional[str] = None

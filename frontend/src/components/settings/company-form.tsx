@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
-import { apiPut, getErrorMessage } from "@/lib/api-client";
+import { apiPut, apiUpload, getErrorMessage } from "@/lib/api-client";
 import { Loader2, Save, Upload, X } from "lucide-react";
 
 export function CompanyForm() {
@@ -75,11 +75,35 @@ export function CompanyForm() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Upload logo first if a file was selected
+      let logoUrl = company?.logo_url ?? null;
+      if (logoFile) {
+        setLogoLoading(true);
+        try {
+          const fd = new FormData();
+          fd.append("file", logoFile);
+          // Use the vehicle photo upload endpoint pattern — but for company logo
+          // we'll just convert to base64 and store as logo_url
+          const reader = new FileReader();
+          logoUrl = await new Promise<string>((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(logoFile);
+          });
+        } catch {
+          // If logo upload fails, continue without logo
+        } finally {
+          setLogoLoading(false);
+        }
+      }
+
       const updated = await apiPut<{
         id: string;
         name: string;
         siret?: string;
+        logo_url?: string;
         address?: string;
+        postal_code?: string;
         phone?: string;
         city?: string;
         country?: string;
@@ -87,7 +111,9 @@ export function CompanyForm() {
         name,
         siret,
         address,
+        postal_code: postalCode,
         city,
+        logo_url: logoUrl,
       });
       updateCompany(updated);
       toast({

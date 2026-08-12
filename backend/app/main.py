@@ -29,10 +29,14 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Au démarrage : crée les tables et seed les types globaux."""
+    """Au démarrage : crée les tables, migre les schémas et seed les types globaux."""
     # Crée les tables si elles n'existent pas
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Auto-migrations
+    await _migrate_ocr_status_column()
+    await _migrate_add_postal_code()
 
     # Seed les types globaux
     await _seed_global_types()
@@ -44,6 +48,70 @@ async def lifespan(app: FastAPI):
 
     # À l'arrêt : ferme l'engine
     await engine.dispose()
+
+
+async def _migrate_ocr_status_column():
+    """Convertit la colonne ocr_status de type enum vers varchar."""
+    from sqlalchemy import text
+    from app.database import async_session
+
+    async with async_session() as db:
+        try:
+            result = await db.execute(
+                text("""
+                    SELECT data_type
+                    FROM information_schema.columns
+                    WHERE table_name = 'documents' AND column_name = 'ocr_status'
+                """)
+            )
+            row = result.fetchone()
+
+            if row and row[0] == "USER-DEFINED":
+                logger.info("Migration: converting ocr_status from enum to varchar...")
+                await db.execute(
+                    text("ALTER TABLE documents ALTER COLUMN ocr_status TYPE VARCHAR(32) USING ocr_status::text")
+                )
+                await db.execute(
+                    text("ALTER TABLE documents ALTER COLUMN ocr_status SET DEFAULT 'manual'")
+                )
+                await db.execute(
+                    text("ALTER TABLE documents ALTER COLUMN ocr_status DROP NOT NULL")
+                )
+                await db.execute(
+                    text("UPDATE documents SET ocr_status = 'manual' WHERE ocr_status IS NULL")
+                )
+                await db.execute(text("DROP TYPE IF EXISTS ocrstatus"))
+                await db.commit()
+                logger.info("✓ Migration ocr_status terminée avec succès")
+        except Exception as e:
+            logger.warning("Migration ocr_status: %s", e)
+            await db.rollback()
+
+
+async def _migrate_add_postal_code():
+    """Ajoute la colonne postal_code à companies si elle n'existe pas."""
+    from sqlalchemy import text
+    from app.database import async_session
+
+    async with async_session() as db:
+        try:
+            result = await db.execute(
+                text("""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'companies' AND column_name = 'postal_code'
+                """)
+            )
+            if not result.fetchone():
+                logger.info("Migration: adding postal_code column to companies...")
+                await db.execute(
+                    text("ALTER TABLE companies ADD COLUMN postal_code VARCHAR(20)")
+                )
+                await db.commit()
+                logger.info("✓ Column postal_code added to companies")
+        except Exception as e:
+            logger.warning("Migration postal_code: %s", e)
+            await db.rollback()
 
 
 async def _seed_global_types():
