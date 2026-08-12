@@ -36,7 +36,7 @@ export function VehiclePhoto({ vehicleId, registration }: VehiclePhotoProps) {
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append("photo", file);
+      fd.append("file", file);
       const data = await apiUpload<{ photo_url: string }>(
         `/api/vehicles/${vehicleId}/photo`,
         fd

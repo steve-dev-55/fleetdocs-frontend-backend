@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn, formatFileSize } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { getErrorMessage } from "@/lib/api-client";
+import { getErrorMessage, apiUpload } from "@/lib/api-client";
 
 export interface UploadFile {
   id: string;
@@ -96,22 +96,12 @@ export function UploadDropzone({
         )
       );
       try {
-        // Real upload to /api/documents via multipart/form-data
+        // Upload to backend via apiUpload (uses VITE_API_URL + JWT auth)
         const formData = new FormData();
         formData.append("file", uf.file);
         formData.append("vehicle_id", vehicleId);
         formData.append("document_type_id", documentTypeId);
-        const res = await fetch("/api/documents", {
-          method: "POST",
-          body: formData,
-          credentials: "same-origin",
-        });
-        if (!res.ok) {
-          const err = (await res.json().catch(() => ({}))) as {
-            detail?: string;
-          };
-          throw new Error(err.detail ?? `HTTP ${res.status}`);
-        }
+        await apiUpload(`/api/documents/upload`, formData);
         // Animate progress
         for (let pct = 10; pct <= 100; pct += 15) {
           await new Promise((r) => setTimeout(r, 30));

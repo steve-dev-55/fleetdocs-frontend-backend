@@ -189,11 +189,10 @@ export function VehiclesTable() {
   React.useEffect(() => {
     for (const v of vehicles.slice(0, pageSize)) {
       if (photoCache[v.id]) continue;
-      fetch(`/api/vehicles/${v.id}/photo`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data: { photo_url?: string | null } | null) => {
+      apiGet<{ photo_url: string | null }>(`/api/vehicles/${v.id}/photo`)
+        .then((data) => {
           if (data?.photo_url) {
-            setPhotoCache((prev) => ({ ...prev, [v.id]: data.photo_url! }));
+            setPhotoCache((prev) => ({ ...prev, [v.id]: data.photo_url as string }));
           }
         })
         .catch(() => {});

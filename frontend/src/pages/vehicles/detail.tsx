@@ -418,11 +418,7 @@ export default function VehicleDetailPage() {
 
 // Wrapper to avoid direct apiPut import aliasing issue
 async function apiPutWrapper(path: string, body: unknown): Promise<unknown> {
-  const res = await fetch(path, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  // Use the centralized apiPut which includes JWT auth + API_URL prefix
+  const { apiPut } = await import("@/lib/api-client");
+  return apiPut(path, body);
 }

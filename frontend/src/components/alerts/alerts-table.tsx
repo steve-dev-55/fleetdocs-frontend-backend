@@ -322,7 +322,7 @@ export function AlertsTable() {
                                 size="icon"
                                 disabled={a.status === "resolved"}
                                 onClick={() => {
-                                  void apiPost(`/api/alerts/${a.id}/resolve`)
+                                  void apiPost(`/api/alerts/${a.id}/resolve`, {})
                                     .then(() => {
                                       appToast.success("Alerte résolue");
                                       void fetchAlerts();
