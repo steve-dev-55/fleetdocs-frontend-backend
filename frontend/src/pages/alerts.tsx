@@ -3,43 +3,46 @@
 import * as React from "react";
 import { AlertsTable } from "@/components/alerts/alerts-table";
 import { Card, CardContent } from "@/components/ui/card";
-import { apiGet, getErrorMessage } from "@/lib/api-client";
+import { apiGet } from "@/lib/api-client";
 import { ALERT_SEVERITY } from "@/lib/status-config";
-import type { Alert } from "@/lib/types";
 import { useAlertEvents } from "@/hooks/use-alert-events";
 import { Bell, AlertTriangle, AlertCircle, Info } from "lucide-react";
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = React.useState<Alert[]>([]);
+  const [summary, setSummary] = React.useState<{
+    total: number;
+    active: number;
+    resolved: number;
+    by_severity: Record<string, number>;
+  }>({ total: 0, active: 0, resolved: 0, by_severity: {} });
 
-  const fetchAlerts = React.useCallback(async () => {
+  const fetchSummary = React.useCallback(async () => {
     try {
-      const data = await apiGet<Alert[] | { items: Alert[] }>(
-        "/api/alerts?status=all"
-      );
-      const items = Array.isArray(data) ? data : data.items;
-      setAlerts(items);
-    } catch (err) {
-      // Silently ignore — the table has its own error handling
-      void getErrorMessage(err);
+      const data = await apiGet<{
+        total: number;
+        active: number;
+        resolved: number;
+        by_severity: Record<string, number>;
+      }>("/api/alerts/summary");
+      setSummary(data);
+    } catch {
+      // Keep previous data
     }
   }, []);
 
   React.useEffect(() => {
-    void fetchAlerts();
-  }, [fetchAlerts]);
+    void fetchSummary();
+  }, [fetchSummary]);
 
-  // Re-fetch summary counts when an alert is resolved / created elsewhere
+  // Re-fetch summary when an alert is resolved / created elsewhere
   useAlertEvents(() => {
-    void fetchAlerts();
+    void fetchSummary();
   });
 
-  // Only count ACTIVE alerts for the summary cards & header (resolving one
-  // moves it to "resolved" and should decrement the active count).
-  const activeAlerts = alerts.filter((a) => a.status === "active");
-  const critical = activeAlerts.filter((a) => a.severity === "critical").length;
-  const warning = activeAlerts.filter((a) => a.severity === "warning").length;
-  const info = activeAlerts.filter((a) => a.severity === "info").length;
+  const critical = summary.by_severity?.["critical"] ?? 0;
+  const warning = summary.by_severity?.["warning"] ?? 0;
+  const info = summary.by_severity?.["info"] ?? 0;
+  const activeCount = summary.active ?? 0;
 
   // Avoid unused warning for ALERT_SEVERITY import (kept for future use)
   void ALERT_SEVERITY;
@@ -51,7 +54,7 @@ export default function AlertsPage() {
           Alertes
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {activeAlerts.length} alertes actives — traitez les documents expirés en priorité.
+          {activeCount} alertes actives — traitez les documents expirés en priorité.
         </p>
       </div>
 

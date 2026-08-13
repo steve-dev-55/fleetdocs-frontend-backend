@@ -528,3 +528,61 @@ def _send_email(to: str, subject: str, body: str):
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
         server.send_message(msg)
+
+
+@router.post("/setup-super-admin", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def setup_super_admin(
+    payload: UserCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Crée un compte super_admin (endpoint public, utilisable une seule fois).
+    
+    Si un super_admin existe déjà, cet endpoint renvoie une erreur 409.
+    À utiliser pour l'initialisation du SaaS uniquement.
+    """
+    from app.models import UserRole
+    
+    # Vérifie qu'aucun super_admin n'existe déjà
+    existing = await db.execute(
+        select(User).where(User.role == UserRole.super_admin)
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Un compte super_admin existe déjà. Utilisez /login pour vous connecter.",
+        )
+    
+    # Vérifie que l'email n'existe pas déjà
+    existing_email = await db.execute(
+        select(User).where(User.email == payload.email)
+    )
+    if existing_email.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Un compte existe déjà avec cet email.",
+        )
+    
+    # Crée le super_admin (sans société — il gère toutes les sociétés)
+    user = User(
+        email=payload.email,
+        password_hash=hash_password(payload.password),
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        role=UserRole.super_admin,
+        status=UserStatus.active,
+        company_id=None,  # Super admin n'a pas de société
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    
+    # Génère le token JWT
+    access_token = create_access_token(
+        data={"sub": str(user.id), "email": user.email, "role": user.role.value}
+    )
+    
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse.model_validate(user),
+    )

@@ -27,6 +27,7 @@ import SettingsPage from "@/pages/settings";
 import AccountSettingsPage from "@/pages/settings/account";
 import SecuritySettingsPage from "@/pages/settings/security";
 import BillingSettingsPage from "@/pages/settings/billing";
+import UsersPage from "@/pages/settings/users";
 import NotificationsSettingsPage from "@/pages/settings/notifications";
 import AuditLogsPage from "@/pages/admin/audit-logs";
 import ExperimentsPage from "@/pages/admin/experiments";
@@ -113,6 +114,10 @@ export default function App() {
               <Route
                 path="/settings/security"
                 element={<SecuritySettingsPage />}
+              />
+              <Route
+                path="/settings/users"
+                element={<UsersPage />}
               />
               <Route
                 path="/settings/billing"
