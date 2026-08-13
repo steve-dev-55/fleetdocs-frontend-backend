@@ -32,7 +32,11 @@ export default function LoginPage() {
         title: "Connexion réussie",
         description: "Bienvenue sur FleetDocs.",
       });
-      navigate("/dashboard");
+      // Super admin → /admin, others → /dashboard
+      const role = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("fleetdocs_token")}` },
+      }).then(r => r.ok ? r.json() : null).then(d => d?.role).catch(() => null);
+      navigate(role === "super_admin" ? "/admin" : "/dashboard");
     } finally {
       setLoading(false);
     }

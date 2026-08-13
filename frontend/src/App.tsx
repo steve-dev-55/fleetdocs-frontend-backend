@@ -31,6 +31,7 @@ import BillingSettingsPage from "@/pages/settings/billing";
 import UsersPage from "@/pages/settings/users";
 import NotificationsSettingsPage from "@/pages/settings/notifications";
 import AuditLogsPage from "@/pages/admin/audit-logs";
+import AdminDashboardPage from "@/pages/admin/dashboard";
 import ExperimentsPage from "@/pages/admin/experiments";
 import VehicleTypesPage from "@/pages/admin/vehicle-types";
 import DocumentTypesPage from "@/pages/admin/document-types";
@@ -129,6 +130,7 @@ export default function App() {
                 path="/settings/notifications"
                 element={<NotificationsSettingsPage />}
               />
+              <Route path="/admin" element={<AdminDashboardPage />} />
               <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
               <Route
                 path="/admin/experiments"

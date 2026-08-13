@@ -15,6 +15,7 @@ __all__ = [
     "get_current_user",
     "get_current_active_user",
     "get_current_company",
+    "get_current_company_optional",
     "require_role",
     "get_pagination_params",
     "PaginationParams",
@@ -65,3 +66,16 @@ class PaginationParams:
 def get_pagination_params(page: int = 1, page_size: int = 20) -> PaginationParams:
     """Dépendance de pagination."""
     return PaginationParams(page=page, page_size=page_size)
+
+
+async def get_current_company_optional(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[Company]:
+    """Récupère la société de l'utilisateur, ou None pour un super_admin."""
+    if current_user.company_id is None:
+        return None
+    result = await db.execute(
+        select(Company).where(Company.id == current_user.company_id)
+    )
+    return result.scalar_one_or_none()

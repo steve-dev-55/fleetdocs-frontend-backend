@@ -20,6 +20,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Keyboard,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -77,6 +78,8 @@ const mainNav: NavItem[] = [
 ];
 
 const adminNav: NavItem[] = [
+  { label: "Tableau de bord", href: "/admin", icon: LayoutDashboard, adminOnly: true },
+  { label: "Sociétés", href: "/admin/companies", icon: Building2, adminOnly: true },
   { label: "Journal d'audit", href: "/admin/audit-logs", icon: ShieldCheck, adminOnly: true },
   { label: "Expériences A/B", href: "/admin/experiments", icon: LayoutDashboard, adminOnly: true },
   { label: "Types de véhicules", href: "/admin/vehicle-types", icon: Truck, adminOnly: true },
@@ -109,7 +112,7 @@ export function AppSidebar() {
   const { pathname } = useLocation();
   const { user, company, logout } = useAuth();
   const { state, setOpen } = useSidebar();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50 bg-surface/80 backdrop-blur-xl">
