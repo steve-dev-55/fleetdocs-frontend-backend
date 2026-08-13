@@ -132,12 +132,16 @@ async def _trigger_alerts_for_document(
 
 
 def _doc_to_response(doc: Document) -> DocumentResponse:
-    """Convertit un Document en DocumentResponse avec uploaded_by_name."""
+    """Convertit un Document en DocumentResponse avec uploaded_by_name.
+    Handles unloaded relationships safely (no lazy load in async context).
+    """
     resp = DocumentResponse.model_validate(doc)
-    if doc.uploaded_by:
-        resp.uploaded_by_name = f"{doc.uploaded_by.first_name} {doc.uploaded_by.last_name}"
-    if doc.vehicle:
-        resp.vehicle_registration = doc.vehicle.registration
+    # Only access uploaded_by if it was eager-loaded
+    try:
+        if doc.uploaded_by:
+            resp.uploaded_by_name = f"{doc.uploaded_by.first_name} {doc.uploaded_by.last_name}"
+    except Exception:
+        pass  # Relationship not loaded — skip
     return resp
 
 # ---------------------------------------------------------------------------

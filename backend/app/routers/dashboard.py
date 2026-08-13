@@ -166,9 +166,24 @@ async def get_dashboard(
         .order_by(Alert.triggered_at.desc())
         .limit(5)
     )
-    recent_alerts = [
-        AlertResponse.model_validate(a) for a in recent_alerts_result.scalars().all()
-    ]
+    recent_alerts = []
+    for a in recent_alerts_result.scalars().all():
+        try:
+            recent_alerts.append(AlertResponse.model_validate(a))
+        except Exception:
+            # Fallback: build minimal response
+            recent_alerts.append(AlertResponse(
+                id=a.id,
+                type=a.type,
+                category=a.category,
+                severity=a.severity,
+                status=a.status,
+                message=a.message,
+                vehicle_id=a.vehicle_id,
+                document_id=a.document_id,
+                company_id=a.company_id,
+                triggered_at=a.triggered_at,
+            ))
 
     # --- Documents récents ---
     recent_docs_result = await db.execute(

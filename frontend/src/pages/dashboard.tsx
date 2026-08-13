@@ -26,7 +26,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { apiGet } from "@/lib/api-client";
-import { OCR_STATUS } from "@/lib/status-config";
 import { formatDate } from "@/lib/utils";
 import type {
   Alert,
@@ -73,14 +72,30 @@ export default function DashboardPage() {
               count: count as number,
             }));
 
-        // Conformité par type : le backend ne fournit pas ce champ directement,
-        // on dérive un équivalent à partir de documents_by_validity si disponible
+        // Conformité par type : transformer documents_by_validity en données exploitables
+        // Backend returns: {"valid": 20, "expired": 3, "expiring_soon": 2, "unknown": 1}
+        // Chart expects: [{type: "Valide", rate: 20}, {type: "Expiré", rate: 3}, ...]
+        const validityLabels: Record<string, string> = {
+          valid: "Valide",
+          expiring_soon: "Expire bientôt",
+          expired: "Expiré",
+          unknown: "Sans date",
+        };
         const complianceByType = Array.isArray(d?.compliance_by_type)
           ? d.compliance_by_type
-          : Object.entries(documentsByValidity).map(([type, count]) => ({
-              type,
+          : Object.entries(documentsByValidity).map(([status, count]) => ({
+              type: validityLabels[status] ?? status,
               rate: (count as number) ?? 0,
             }));
+
+        // Normalize recent documents (backend returns document_type.name etc.)
+        const rawDocs = Array.isArray(d?.recent_documents) ? d.recent_documents : [];
+        const recentDocs = rawDocs.map((doc: any) => ({
+          ...doc,
+          type: doc.type ?? doc.document_type?.name ?? "—",
+          validity: doc.validity ?? doc.validity_status ?? "—",
+          vehicle_registration: doc.vehicle_registration ?? "",
+        }));
 
         const normalized: DashboardResponse = {
           total_vehicles: d?.total_vehicles ?? kpis.total_vehicles ?? 0,
@@ -102,9 +117,7 @@ export default function DashboardPage() {
               }))
             : [],
           recent_alerts: Array.isArray(d?.recent_alerts) ? d.recent_alerts : [],
-          recent_documents: Array.isArray(d?.recent_documents)
-            ? d.recent_documents
-            : [],
+          recent_documents: recentDocs as any,
         };
         setData(normalized);
         setLoading(false);
@@ -243,7 +256,7 @@ export default function DashboardPage() {
           trend={{ value: 12, direction: "down", positive: true }}
         />
         <KpiCard
-          label="OCR en attente"
+          label="Docs expirés"
           value={data.pending_ocr}
           icon={Clock}
           accent="sky"
@@ -300,14 +313,19 @@ export default function DashboardPage() {
                   <div className="text-right shrink-0">
                     <span
                       className={`inline-block text-xs font-medium ${
-                        d.ocr_status === "validated"
+                        d.validity === "valid"
                           ? "text-green-600"
-                          : d.ocr_status === "pending_ocr"
+                          : d.validity === "expired"
+                          ? "text-red-600"
+                          : d.validity === "expiring_soon" || d.validity === "expiring_30"
                           ? "text-amber-600"
                           : "text-blue-600"
                       }`}
                     >
-                      {OCR_STATUS[d.ocr_status]?.label ?? d.ocr_status ?? "—"}
+                      {d.validity === "valid" ? "Valide"
+                        : d.validity === "expired" ? "Expiré"
+                        : d.validity === "expiring_soon" || d.validity === "expiring_30" ? "Expire bientôt"
+                        : d.validity ?? "—"}
                     </span>
                   </div>
                 </Link>

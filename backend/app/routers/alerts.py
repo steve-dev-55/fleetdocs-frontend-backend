@@ -127,7 +127,7 @@ async def get_alert_summary(
                 Alert.company_id == company.id, Alert.status == s
             )
         )
-        status_counts[str(s)] = r.scalar_one()
+        status_counts[s.value] = r.scalar_one()
 
     # Par sévérité
     severity_counts = {}
@@ -137,7 +137,7 @@ async def get_alert_summary(
                 Alert.company_id == company.id, Alert.severity == s
             )
         )
-        severity_counts[str(s)] = r.scalar_one()
+        severity_counts[s.value] = r.scalar_one()
 
     # Par catégorie
     category_counts = {}
@@ -147,7 +147,7 @@ async def get_alert_summary(
                 Alert.company_id == company.id, Alert.category == c
             )
         )
-        category_counts[str(c)] = r.scalar_one()
+        category_counts[c.value] = r.scalar_one()
 
     return AlertSummary(
         total=total,
