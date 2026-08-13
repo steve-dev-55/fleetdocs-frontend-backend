@@ -34,7 +34,7 @@ export function Hero() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg" className="h-12 px-6 text-base">
-                <Link to="/login">
+                <Link to="/register">
                   Démarrer gratuitement
                   <ArrowRight className="size-4" />
                 </Link>

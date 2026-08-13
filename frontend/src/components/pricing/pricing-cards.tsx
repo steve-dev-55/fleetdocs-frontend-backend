@@ -39,7 +39,7 @@ export const plans: Plan[] = [
       "Support email (48h)",
     ],
     cta: "Commencer",
-    ctaHref: "/login",
+    ctaHref: "/register",
   },
   {
     id: "pro",

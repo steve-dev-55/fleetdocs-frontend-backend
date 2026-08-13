@@ -65,8 +65,15 @@ export default function LoginPage() {
         <>
           Pas encore de compte ?{" "}
           <Link
-            to="/demo"
+            to="/register"
             className="font-medium text-primary hover:underline"
+          >
+            Créer un compte
+          </Link>
+          {" · "}
+          <Link
+            to="/demo"
+            className="text-muted-foreground hover:text-primary transition-colors"
           >
             Demander une démo
           </Link>

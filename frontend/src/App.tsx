@@ -10,6 +10,7 @@ import LandingPage from "@/pages/landing";
 import PricingPage from "@/pages/pricing";
 import DemoPage from "@/pages/demo";
 import LoginPage from "@/pages/auth/login";
+import RegisterPage from "@/pages/auth/register";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
 import ResetPasswordPage from "@/pages/auth/reset-password";
 import AcceptInvitationPage from "@/pages/auth/accept-invitation";
@@ -84,6 +85,7 @@ export default function App() {
 
             {/* Auth */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route
