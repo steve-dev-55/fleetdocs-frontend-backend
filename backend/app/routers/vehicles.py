@@ -50,7 +50,9 @@ async def _get_vehicle_or_404(
     db: AsyncSession, vehicle_id: UUID, company_id: UUID
 ) -> Vehicle:
     result = await db.execute(
-        select(Vehicle).where(
+        select(Vehicle)
+        .options(selectinload(Vehicle.vehicle_type))
+        .where(
             Vehicle.id == vehicle_id, Vehicle.company_id == company_id
         )
     )
@@ -210,8 +212,13 @@ async def create_vehicle(
     )
     db.add(vehicle)
     await db.commit()
-    await db.refresh(vehicle)
-
+    # Re-query with selectinload to avoid greenlet error
+    result = await db.execute(
+        select(Vehicle)
+        .options(selectinload(Vehicle.vehicle_type))
+        .where(Vehicle.id == vehicle.id)
+    )
+    vehicle = result.scalar_one()
     return _vehicle_to_response(vehicle)
 
 
@@ -370,12 +377,12 @@ async def get_vehicle_timeline(
             TimelineEvent(
                 id=f"status-{h.id}",
                 type="status_change",
-                title=f"Statut : {h.new_status.value}",
+                title=f"Statut : {h.new_status.value if hasattr(h.new_status, 'value') else h.new_status}",
                 description=h.comment,
                 timestamp=h.changed_at,
                 metadata={
-                    "old_status": h.old_status.value if h.old_status else None,
-                    "new_status": h.new_status.value,
+                    "old_status": (h.old_status.value if hasattr(h.old_status, 'value') else str(h.old_status)) if h.old_status else None,
+                    "new_status": h.new_status.value if hasattr(h.new_status, 'value') else str(h.new_status),
                 },
             )
         )
@@ -391,11 +398,11 @@ async def get_vehicle_timeline(
                 id=f"document-{d.id}",
                 type="document_uploaded",
                 title=f"Document : {d.file_name}",
-                description=f"Statut OCR : {d.ocr_status.value}",
+                description=f"Document : {d.file_name}",
                 timestamp=d.created_at,
                 metadata={
                     "document_id": str(d.id),
-                    "ocr_status": d.ocr_status.value,
+                    "ocr_status": str(d.ocr_status) if d.ocr_status else "manual",
                 },
             )
         )
@@ -410,12 +417,12 @@ async def get_vehicle_timeline(
             TimelineEvent(
                 id=f"alert-{a.id}",
                 type="alert",
-                title=f"Alerte : {a.type.value}",
+                title=f"Alerte : {a.type.value if hasattr(a.type, 'value') else str(a.type)}",
                 description=a.message,
                 timestamp=a.triggered_at,
                 metadata={
-                    "severity": a.severity.value,
-                    "status": a.status.value,
+                    "severity": a.severity.value if hasattr(a.severity, 'value') else str(a.severity),
+                    "status": a.status.value if hasattr(a.status, 'value') else str(a.status),
                 },
             )
         )

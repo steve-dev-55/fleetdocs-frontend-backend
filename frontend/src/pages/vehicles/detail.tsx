@@ -32,7 +32,6 @@ import {
   formatRelative,
   daysUntil,
   formatFileSize,
-  downloadMockPdf,
   normalizeDocuments,
 } from "@/lib/utils";
 import {
@@ -126,8 +125,12 @@ export default function VehicleDetailPage() {
     { icon: User, label: "Conducteur", value: vehicle.driver ?? "—" },
     { icon: MapPin, label: "Site", value: vehicle.site ?? "—" },
     { icon: Fuel, label: "Carburant", value: vehicle.fuel_type ?? "—" },
-    { icon: Settings, label: "PTAC", value: `${vehicle.ptac_kg} kg` },
-    { icon: Truck, label: "Année", value: String(vehicle.year) },
+    { icon: Settings, label: "PTAC", value: vehicle.ptac_kg ? `${vehicle.ptac_kg} kg` : "—" },
+    { icon: Truck, label: "Année", value: vehicle.year ? String(vehicle.year) : "—" },
+    { icon: FileText, label: "Type", value: vehicle.vehicle_type_name ?? vehicle.type ?? "—" },
+    { icon: Truck, label: "VIN", value: vehicle.vin ?? "—" },
+    { icon: Truck, label: "Kilométrage", value: vehicle.mileage ? `${vehicle.mileage} km` : "—" },
+    { icon: Truck, label: "Couleur", value: vehicle.color ?? "—" },
   ];
 
   const qrUrl =
@@ -343,14 +346,15 @@ export default function VehicleDetailPage() {
                               )}
                             </TableCell>
                             <TableCell className="pr-6 text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => downloadMockPdf(d.file_name)}
-                                aria-label="Télécharger"
-                              >
-                                <Download className="size-4" />
-                              </Button>
+                              <a href={(d as any).file_url} download={d.file_name} target="_blank" rel="noopener noreferrer">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label="Télécharger"
+                                >
+                                  <Download className="size-4" />
+                                </Button>
+                              </a>
                             </TableCell>
                           </TableRow>
                         );
