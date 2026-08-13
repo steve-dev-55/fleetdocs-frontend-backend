@@ -51,7 +51,11 @@ async def global_search(
     # Documents
     docs_result = await db.execute(
         select(Document)
-        .options(selectinload(Document.document_type), selectinload(Document.uploaded_by))
+        .options(
+            selectinload(Document.document_type),
+            selectinload(Document.uploaded_by),
+            selectinload(Document.vehicle),
+        )
         .where(
             Document.company_id == company.id,
             or_(

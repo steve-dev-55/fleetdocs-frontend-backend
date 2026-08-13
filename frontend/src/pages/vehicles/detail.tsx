@@ -329,12 +329,13 @@ export default function VehicleDetailPage() {
                         return (
                           <TableRow key={d.id}>
                             <TableCell className="pl-6">
-                              <Link
-                                to={`/documents/${d.id}`}
-                                className="font-medium text-foreground hover:text-primary transition-colors"
+                              <button
+                                type="button"
+                                className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer text-left"
+                                onClick={() => navigate(`/documents/${d.id}`)}
                               >
                                 {d.type}
-                              </Link>
+                              </button>
                               <p className="text-xs text-muted-foreground truncate max-w-[180px]">
                                 {d.file_name}
                               </p>

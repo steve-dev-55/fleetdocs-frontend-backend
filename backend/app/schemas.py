@@ -386,6 +386,7 @@ class DocumentResponse(ORMModel):
     reference: Optional[str] = None
     document_type_id: Optional[UUID] = None
     vehicle_id: UUID
+    vehicle_registration: Optional[str] = None
     company_id: UUID
     uploaded_by_id: Optional[UUID] = None
     uploaded_by_name: Optional[str] = None

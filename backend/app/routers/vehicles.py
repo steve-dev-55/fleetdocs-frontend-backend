@@ -263,6 +263,10 @@ async def get_vehicle(
         VehicleStatusHistoryResponse.model_validate(h) for h in history
     ]
     resp.documents_count = len(documents)
+    # Populate vehicle_type_name from the relationship if loaded
+    if vehicle.vehicle_type:
+        resp.vehicle_type_name = vehicle.vehicle_type.name
+        resp.vehicle_type_code = vehicle.vehicle_type.code
     return resp
 
 

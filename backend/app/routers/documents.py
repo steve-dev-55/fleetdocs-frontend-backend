@@ -58,6 +58,7 @@ async def _get_document_or_404(
         .options(
             selectinload(Document.document_type),
             selectinload(Document.uploaded_by),
+            selectinload(Document.vehicle),
         )
         .where(Document.id == document_id, Document.company_id == company_id)
     )
@@ -135,6 +136,8 @@ def _doc_to_response(doc: Document) -> DocumentResponse:
     resp = DocumentResponse.model_validate(doc)
     if doc.uploaded_by:
         resp.uploaded_by_name = f"{doc.uploaded_by.first_name} {doc.uploaded_by.last_name}"
+    if doc.vehicle:
+        resp.vehicle_registration = doc.vehicle.registration
     return resp
 
 # ---------------------------------------------------------------------------
@@ -156,7 +159,11 @@ async def list_documents(
     """Liste les documents avec filtres."""
     query = (
         select(Document)
-        .options(selectinload(Document.document_type), selectinload(Document.uploaded_by))
+        .options(
+            selectinload(Document.document_type),
+            selectinload(Document.uploaded_by),
+            selectinload(Document.vehicle),
+        )
         .where(Document.company_id == company.id)
     )
 
@@ -264,7 +271,11 @@ async def upload_document(
     # Recharge le document avec ses relations (évite MissingGreenlet à la sérialisation)
     result = await db.execute(
         select(Document)
-        .options(selectinload(Document.document_type), selectinload(Document.uploaded_by))
+        .options(
+            selectinload(Document.document_type),
+            selectinload(Document.uploaded_by),
+            selectinload(Document.vehicle),
+        )
         .where(Document.id == doc.id)
     )
     doc = result.scalar_one()
@@ -327,7 +338,11 @@ async def update_document(
     # Recharge le document avec ses relations (évite MissingGreenlet à la sérialisation)
     result = await db.execute(
         select(Document)
-        .options(selectinload(Document.document_type), selectinload(Document.uploaded_by))
+        .options(
+            selectinload(Document.document_type),
+            selectinload(Document.uploaded_by),
+            selectinload(Document.vehicle),
+        )
         .where(Document.id == doc.id)
     )
     doc = result.scalar_one()

@@ -152,7 +152,9 @@ export function VehiclesTable() {
       const params = new URLSearchParams();
       if (effectiveFilters.search) params.set("search", effectiveFilters.search);
       params.set("status", effectiveFilters.status);
-      params.set("type", effectiveFilters.type);
+      if (effectiveFilters.type && effectiveFilters.type !== "all") {
+        params.set("vehicle_type_id", effectiveFilters.type);
+      }
       params.set("compliance", effectiveFilters.compliance);
       const data = await apiGet<
         | { items: Vehicle[]; total: number }
