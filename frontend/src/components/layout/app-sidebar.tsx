@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { apiGet } from "@/lib/api-client";
+import { useAlertEvents } from "@/hooks/use-alert-events";
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import {
@@ -88,17 +89,23 @@ const settingsNav: NavItem[] = [
 
 export function AppSidebar() {
   const [alertCount, setAlertCount] = React.useState<number | null>(null);
-  React.useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    const fetchCount = () => {
-      apiGet<{ active: number }>("/api/alerts/summary")
-        .then((d) => setAlertCount(d.active))
-        .catch(() => {});
-    };
-    fetchCount();
-    interval = setInterval(fetchCount, 30000); // Refresh every 30s
-    return () => clearInterval(interval);
+
+  const fetchCount = React.useCallback(() => {
+    apiGet<{ active: number }>("/api/alerts/summary")
+      .then((d) => setAlertCount(d.active))
+      .catch(() => {});
   }, []);
+
+  React.useEffect(() => {
+    fetchCount();
+    // Polling every 60s as a safety net (the event bus handles immediate updates)
+    const interval: ReturnType<typeof setInterval> = setInterval(fetchCount, 60000);
+    return () => clearInterval(interval);
+  }, [fetchCount]);
+
+  // Refresh immediately when an alert is resolved / created elsewhere
+  useAlertEvents(fetchCount);
+
   const { pathname } = useLocation();
   const { user, company, logout } = useAuth();
   const { state, setOpen } = useSidebar();

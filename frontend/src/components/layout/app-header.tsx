@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { apiGet } from "@/lib/api-client";
+import { useAlertEvents } from "@/hooks/use-alert-events";
 import {
   Tooltip,
   TooltipContent,
@@ -27,16 +28,19 @@ import { useCommandPalette } from "@/components/layout/command-palette";
 
 export function AppHeader() {
   const [alertCount, setAlertCount] = React.useState(0);
-  React.useEffect(() => {
-    const fetchCount = () => {
-      apiGet<{ active: number }>("/api/alerts/summary")
-        .then((d) => setAlertCount(d.active))
-        .catch(() => {});
-    };
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
+  const fetchCount = React.useCallback(() => {
+    apiGet<{ active: number }>("/api/alerts/summary")
+      .then((d) => setAlertCount(d.active))
+      .catch(() => {});
   }, []);
+  React.useEffect(() => {
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000); // Refresh every 30s (fallback)
+    return () => clearInterval(interval);
+  }, [fetchCount]);
+  // Refresh the badge immediately when an alert is resolved / created elsewhere
+  useAlertEvents(fetchCount);
+
   const navigate = useNavigate();
   const { setOpen: setCommandOpen } = useCommandPalette();
   const [searchValue, setSearchValue] = React.useState("");
@@ -100,8 +104,11 @@ export function AppHeader() {
                 <Link to="/alerts" data-tour="alerts-bell">
                   <Bell className="size-4" />
                   <span className="sr-only">Alertes</span>
-                  <Badge className="absolute -top-0.5 -right-0.5 size-4 min-w-4 rounded-full p-0 text-[9px] flex items-center justify-center">
-                    12
+                  <Badge
+                    variant="secondary"
+                    className="absolute -top-0.5 -right-0.5 size-4 min-w-4 rounded-full p-0 text-[9px] flex items-center justify-center bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                  >
+                    {alertCount}
                   </Badge>
                 </Link>
               </Button>

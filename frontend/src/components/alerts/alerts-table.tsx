@@ -1,5 +1,6 @@
 
 
+
 import * as React from "react";
 import { Link } from "react-router-dom";
 import {
@@ -31,6 +32,7 @@ import { ALERT_TYPES, ALERT_SEVERITY } from "@/lib/status-config";
 import { exportToCsv, formatDateTime, formatRelative } from "@/lib/utils";
 import { apiGet, apiPost, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
+import { notifyAlertsChanged } from "@/lib/alert-bus";
 import type { AlertType, AlertStatus, Alert } from "@/lib/types";
 import {
   Search,
@@ -326,6 +328,8 @@ export function AlertsTable() {
                                     .then(() => {
                                       appToast.success("Alerte résolue");
                                       void fetchAlerts();
+                                      // Notify sidebar, header & alerts page to refresh their counts
+                                      notifyAlertsChanged();
                                     })
                                     .catch((err) => {
                                       appToast.error("Erreur", {

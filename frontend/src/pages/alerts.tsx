@@ -6,23 +6,40 @@ import { Card, CardContent } from "@/components/ui/card";
 import { apiGet, getErrorMessage } from "@/lib/api-client";
 import { ALERT_SEVERITY } from "@/lib/status-config";
 import type { Alert } from "@/lib/types";
+import { useAlertEvents } from "@/hooks/use-alert-events";
 import { Bell, AlertTriangle, AlertCircle, Info } from "lucide-react";
 
 export default function AlertsPage() {
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
 
-  React.useEffect(() => {
-    void apiGet<Alert[] | { items: Alert[] }>("/api/alerts?status=all")
-      .then((d) => {
-        const items = Array.isArray(d) ? d : d.items;
-        setAlerts(items);
-      })
-      .catch(() => {});
+  const fetchAlerts = React.useCallback(async () => {
+    try {
+      const data = await apiGet<Alert[] | { items: Alert[] }>(
+        "/api/alerts?status=all"
+      );
+      const items = Array.isArray(data) ? data : data.items;
+      setAlerts(items);
+    } catch (err) {
+      // Silently ignore — the table has its own error handling
+      void getErrorMessage(err);
+    }
   }, []);
 
-  const critical = alerts.filter((a) => a.severity === "critical").length;
-  const warning = alerts.filter((a) => a.severity === "warning").length;
-  const info = alerts.filter((a) => a.severity === "info").length;
+  React.useEffect(() => {
+    void fetchAlerts();
+  }, [fetchAlerts]);
+
+  // Re-fetch summary counts when an alert is resolved / created elsewhere
+  useAlertEvents(() => {
+    void fetchAlerts();
+  });
+
+  // Only count ACTIVE alerts for the summary cards & header (resolving one
+  // moves it to "resolved" and should decrement the active count).
+  const activeAlerts = alerts.filter((a) => a.status === "active");
+  const critical = activeAlerts.filter((a) => a.severity === "critical").length;
+  const warning = activeAlerts.filter((a) => a.severity === "warning").length;
+  const info = activeAlerts.filter((a) => a.severity === "info").length;
 
   // Avoid unused warning for ALERT_SEVERITY import (kept for future use)
   void ALERT_SEVERITY;
@@ -34,7 +51,7 @@ export default function AlertsPage() {
           Alertes
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {alerts.length} alertes actives — traitez les documents expirés en priorité.
+          {activeAlerts.length} alertes actives — traitez les documents expirés en priorité.
         </p>
       </div>
 
