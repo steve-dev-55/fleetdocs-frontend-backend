@@ -69,6 +69,10 @@ def _vehicle_to_response(
     resp = VehicleResponse.model_validate(vehicle)
     resp.documents_count = documents_count
     resp.compliance_rate = compliance_rate
+    # Populate vehicle_type_name from the relationship if loaded
+    if vehicle.vehicle_type:
+        resp.vehicle_type_name = vehicle.vehicle_type.name
+        resp.vehicle_type_code = vehicle.vehicle_type.code
     return resp
 
 
@@ -81,13 +85,19 @@ def _vehicle_to_response(
 async def list_vehicles(
     search: Optional[str] = Query(None, description="Recherche (immat, marque, modèle)"),
     status_filter: Optional[str] = Query(None, alias="status"),
-    vehicle_type_id: Optional[UUID] = None,
+    vehicle_type_id: Optional[str] = None,  # Accept UUID or type name
+    compliance: Optional[str] = None,  # Ignored (filtered client-side)
     pagination: PaginationParams = Depends(get_pagination_params),
     company: Company = Depends(get_current_company),
     db: AsyncSession = Depends(get_db),
 ):
     """Liste les véhicules de la société avec filtres et pagination."""
-    query = select(Vehicle).where(Vehicle.company_id == company.id)
+    from sqlalchemy.orm import selectinload
+    query = (
+        select(Vehicle)
+        .options(selectinload(Vehicle.vehicle_type))
+        .where(Vehicle.company_id == company.id)
+    )
 
     if search:
         pattern = f"%{search}%"
@@ -103,17 +113,44 @@ async def list_vehicles(
     # "all" (ou vide) signifie "pas de filtre" — évite l'erreur 422 quand le
     # frontend envoie explicitement status=all pour dire "tous les statuts".
     if status_filter and status_filter != "all":
+        # Map legacy status values to current enum values
+        status_map = {
+            "available": "active",
+            "in_service": "active",
+            "broken_down": "maintenance",
+            "in_garage": "maintenance",
+            "immobilized": "out_of_service",
+        }
+        mapped_status = status_map.get(status_filter, status_filter)
         try:
-            status_enum = VehicleStatus(status_filter)
+            status_enum = VehicleStatus(mapped_status)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Statut invalide : {status_filter}",
             )
-        query = query.where(Vehicle.status == status_enum)
+        query = query.where(Vehicle.status == VehicleStatus(mapped_status))
 
-    if vehicle_type_id:
-        query = query.where(Vehicle.vehicle_type_id == vehicle_type_id)
+    # Type filter: frontend sends the type name (e.g. "Fourgon") or "all"
+    # We need to resolve it to a vehicle_type_id
+    type_filter = vehicle_type_id  # could be UUID string or type name
+    if type_filter and type_filter != "all":
+        # Try to resolve as UUID first
+        try:
+            from uuid import UUID as UUIDType
+            uuid_val = UUIDType(type_filter)
+            query = query.where(Vehicle.vehicle_type_id == uuid_val)
+        except (ValueError, AttributeError):
+            # Not a UUID — treat as type name and resolve via VehicleType
+            vt_result = await db.execute(
+                select(VehicleType).where(VehicleType.name == type_filter)
+            )
+            vt = vt_result.scalar_one_or_none()
+            if vt:
+                query = query.where(Vehicle.vehicle_type_id == vt.id)
+            else:
+                # Unknown type — return empty result
+                query = query.where(Vehicle.id == None)  # noqa: E711
 
     query = query.order_by(Vehicle.created_at.desc())
     query = query.offset(pagination.offset).limit(pagination.limit)
@@ -197,6 +234,7 @@ async def get_vehicle(
     result = await db.execute(
         select(Vehicle)
         .options(
+            selectinload(Vehicle.vehicle_type),
             selectinload(Vehicle.documents).selectinload(Document.document_type),
             selectinload(Vehicle.status_history),
         )

@@ -311,6 +311,8 @@ class VehicleResponse(ORMModel):
     color: Optional[str] = None
     fuel_type: Optional[str] = None
     vehicle_type_id: Optional[UUID] = None
+    vehicle_type_name: Optional[str] = None
+    vehicle_type_code: Optional[str] = None
     company_id: UUID
     created_at: datetime
     updated_at: datetime

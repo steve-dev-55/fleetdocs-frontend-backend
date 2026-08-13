@@ -1,5 +1,4 @@
 
-
 import * as React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,27 +12,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { apiGet, apiPut, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import type { Vehicle } from "@/lib/types";
+
+interface VehicleType {
+  id: string;
+  name: string;
+  code: string;
+}
 
 export default function EditVehiclePage() {
   const navigate = useNavigate();
   const params = useParams<{ id: string }>();
   const vehicleId = params.id ?? "";
   const [loading, setLoading] = React.useState(false);
-  const [vehicle, setVehicle] = React.useState<Vehicle | null>(null);
+  const [vehicle, setVehicle] = React.useState<any>(null);
+  const [vehicleTypes, setVehicleTypes] = React.useState<VehicleType[]>([]);
 
   React.useEffect(() => {
     if (!vehicleId) return;
-    void apiGet<Vehicle>(`/api/vehicles/${vehicleId}`)
-      .then(setVehicle)
-      .catch(() => {
-        appToast.error("Véhicule introuvable");
-        navigate("/vehicles");
-      });
+    void Promise.all([
+      apiGet<any>(`/api/vehicles/${vehicleId}`),
+      apiGet<VehicleType[] | { items: VehicleType[] }>("/api/vehicle-types"),
+    ]).then(([v, vt]) => {
+      setVehicle(v);
+      const types = Array.isArray(vt) ? vt : vt.items ?? [];
+      setVehicleTypes(types);
+    }).catch(() => {
+      appToast.error("Véhicule introuvable");
+      navigate("/vehicles");
+    });
   }, [vehicleId, navigate]);
 
   if (!vehicle) {
@@ -46,16 +56,24 @@ export default function EditVehiclePage() {
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
-    const payload: Partial<Vehicle> = {
+
+    // Build payload with backend field names
+    const payload: Record<string, unknown> = {
       registration: String(data.get("registration") ?? "").trim().toUpperCase(),
-      vin: String(data.get("vin") ?? "").trim(),
-      brand: String(data.get("brand") ?? "").trim(),
-      model: String(data.get("model") ?? "").trim(),
-      type: String(data.get("type") ?? "Fourgon"),
-      status: String(data.get("status") ?? "available") as Vehicle["status"],
-      site: String(data.get("site") ?? "").trim() || undefined,
-      driver: String(data.get("driver") ?? "").trim() || undefined,
+      vin: String(data.get("vin") ?? "").trim() || undefined,
+      brand: String(data.get("brand") ?? "").trim() || undefined,
+      model: String(data.get("model") ?? "").trim() || undefined,
+      status: String(data.get("status") ?? "active"),
+      mileage: data.get("mileage") ? Number(data.get("mileage")) : undefined,
+      color: String(data.get("color") ?? "").trim() || undefined,
+      fuel_type: String(data.get("fuel_type") ?? "Diesel"),
     };
+
+    // vehicle_type_id from select
+    const typeId = data.get("vehicle_type_id") as string;
+    if (typeId && typeId !== "none") {
+      payload.vehicle_type_id = typeId;
+    }
 
     setLoading(true);
     try {
@@ -72,6 +90,13 @@ export default function EditVehiclePage() {
       setLoading(false);
     }
   }
+
+  // Map backend status values to display labels
+  const STATUS_OPTIONS = [
+    { value: "active", label: "Actif" },
+    { value: "maintenance", label: "En maintenance" },
+    { value: "out_of_service", label: "Hors service" },
+  ];
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -108,12 +133,13 @@ export default function EditVehiclePage() {
                 />
               </div>
               <div>
-                <Label htmlFor="vin">VIN</Label>
+                <Label htmlFor="vin">VIN (17 caractères)</Label>
                 <Input
                   id="vin"
                   name="vin"
-                  defaultValue={vehicle.vin}
+                  defaultValue={vehicle.vin ?? ""}
                   className="mt-1.5 font-mono text-sm"
+                  maxLength={17}
                 />
               </div>
               <div>
@@ -121,7 +147,7 @@ export default function EditVehiclePage() {
                 <Input
                   id="brand"
                   name="brand"
-                  defaultValue={vehicle.brand}
+                  defaultValue={vehicle.brand ?? ""}
                   className="mt-1.5"
                 />
               </div>
@@ -130,76 +156,78 @@ export default function EditVehiclePage() {
                 <Input
                   id="model"
                   name="model"
-                  defaultValue={vehicle.model}
+                  defaultValue={vehicle.model ?? ""}
                   className="mt-1.5"
                 />
               </div>
               <div>
-                <Label htmlFor="type">Type</Label>
-                <Select name="type" defaultValue={vehicle.type}>
+                <Label htmlFor="vehicle_type_id">Type de véhicule</Label>
+                <Select name="vehicle_type_id" defaultValue={vehicle.vehicle_type_id ?? "none"}>
                   <SelectTrigger className="mt-1.5 w-full">
-                    <SelectValue />
+                    <SelectValue placeholder="Sélectionner..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Fourgon">Fourgon</SelectItem>
-                    <SelectItem value="Poids lourd">Poids lourd</SelectItem>
-                    <SelectItem value="Utilitaire">Utilitaire</SelectItem>
-                    <SelectItem value="Voiture">Voiture</SelectItem>
-                    <SelectItem value="Remorque">Remorque</SelectItem>
+                    <SelectItem value="none">— Aucun —</SelectItem>
+                    {vehicleTypes.map((vt) => (
+                      <SelectItem key={vt.id} value={vt.id}>
+                        {vt.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label htmlFor="status">Statut</Label>
-                <Select name="status" defaultValue={vehicle.status}>
+                <Select name="status" defaultValue={vehicle.status ?? "active"}>
                   <SelectTrigger className="mt-1.5 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="available">Disponible</SelectItem>
-                    <SelectItem value="in_service">En service</SelectItem>
-                    <SelectItem value="broken_down">En panne</SelectItem>
-                    <SelectItem value="in_garage">Au garage</SelectItem>
-                    <SelectItem value="immobilized">Immobilisé</SelectItem>
-                    <SelectItem value="out_of_service">Hors service</SelectItem>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="site">Site</Label>
+                <Label htmlFor="mileage">Kilométrage</Label>
                 <Input
-                  id="site"
-                  name="site"
-                  defaultValue={vehicle.site ?? ""}
+                  id="mileage"
+                  name="mileage"
+                  type="number"
+                  defaultValue={vehicle.mileage ?? ""}
                   className="mt-1.5"
                 />
               </div>
               <div>
-                <Label htmlFor="driver">Conducteur</Label>
+                <Label htmlFor="color">Couleur</Label>
                 <Input
-                  id="driver"
-                  name="driver"
-                  defaultValue={vehicle.driver ?? ""}
+                  id="color"
+                  name="color"
+                  defaultValue={vehicle.color ?? ""}
                   className="mt-1.5"
                 />
               </div>
+              <div>
+                <Label htmlFor="fuel_type">Carburant</Label>
+                <Select name="fuel_type" defaultValue={vehicle.fuel_type ?? "Diesel"}>
+                  <SelectTrigger className="mt-1.5 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Diesel">Diesel</SelectItem>
+                    <SelectItem value="Essence">Essence</SelectItem>
+                    <SelectItem value="Électrique">Électrique</SelectItem>
+                    <SelectItem value="Hybride">Hybride</SelectItem>
+                    <SelectItem value="GPL">GPL</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                name="notes"
-                rows={3}
-                placeholder="Informations complémentaires..."
-                className="mt-1.5"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-border">
-              <Button variant="outline" asChild type="button">
-                <Link to={`/vehicles/${vehicle.id}`}>Annuler</Link>
-              </Button>
+            <div className="flex justify-end">
               <Button type="submit" disabled={loading}>
                 {loading ? (
                   <Loader2 className="size-4 animate-spin" />

@@ -234,7 +234,7 @@ export function VehiclesTable() {
       registration: v.registration,
       brand: v.brand,
       model: v.model,
-      type: v.type,
+      type: v.vehicle_type_name ?? v.type ?? "—",
       ptac_kg: v.ptac_kg,
       year: v.year,
       vin: v.vin,
@@ -628,7 +628,7 @@ export function VehiclesTable() {
                       )}
                       {isVisible("type") && (
                         <TableCell className="hidden md:table-cell text-muted-foreground">
-                          {v.type}
+                          {v.vehicle_type_name ?? v.type ?? "—"}
                         </TableCell>
                       )}
                       {isVisible("status") && (

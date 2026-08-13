@@ -37,6 +37,7 @@ async def lifespan(app: FastAPI):
     # Auto-migrations
     await _migrate_ocr_status_column()
     await _migrate_add_postal_code()
+    await _migrate_logo_url_to_text()
 
     # Seed les types globaux
     await _seed_global_types()
@@ -113,6 +114,35 @@ async def _migrate_add_postal_code():
             logger.warning("Migration postal_code: %s", e)
             await db.rollback()
 
+
+
+async def _migrate_logo_url_to_text():
+    """Convertit la colonne logo_url de VARCHAR(512) vers TEXT.
+    Nécessaire car les logos en base64 font plus de 512 caractères.
+    """
+    from sqlalchemy import text
+    from app.database import async_session
+
+    async with async_session() as db:
+        try:
+            result = await db.execute(
+                text("""
+                    SELECT data_type
+                    FROM information_schema.columns
+                    WHERE table_name = 'companies' AND column_name = 'logo_url'
+                """)
+            )
+            row = result.fetchone()
+            if row and row[0] == "character varying":
+                logger.info("Migration: converting logo_url from varchar to text...")
+                await db.execute(
+                    text("ALTER TABLE companies ALTER COLUMN logo_url TYPE TEXT USING logo_url::text")
+                )
+                await db.commit()
+                logger.info("✓ Migration logo_url terminée avec succès")
+        except Exception as e:
+            logger.warning("Migration logo_url: %s", e)
+            await db.rollback()
 
 async def _seed_global_types():
     """Insère les types globaux de véhicules et documents s'ils n'existent pas."""

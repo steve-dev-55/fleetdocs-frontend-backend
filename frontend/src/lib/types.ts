@@ -49,10 +49,14 @@ export interface Vehicle {
   brand: string;
   model: string;
   type: string;
-  ptac_kg: number;
-  year: number;
-  vin: string;
+  vehicle_type_id?: string;
+  vehicle_type_name?: string;
+  vehicle_type_code?: string;
+  ptac_kg?: number;
+  year?: number;
+  vin?: string;
   status: VehicleStatus;
+  photo_url?: string;
   mileage?: number;
   mileage_km?: number;
   fuel_type?: string;

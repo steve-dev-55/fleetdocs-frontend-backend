@@ -138,7 +138,7 @@ class Company(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     siret: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    logo_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    logo_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     plan: Mapped[PlanType] = mapped_column(
         SQLEnum(PlanType), nullable=False, default=PlanType.starter
     )

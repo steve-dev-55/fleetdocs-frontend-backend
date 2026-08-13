@@ -162,7 +162,7 @@ export default function VehicleDetailPage() {
                 <VehicleStatusBadge status={vehicle.status} />
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {vehicle.brand} {vehicle.model} · {vehicle.type} · {vehicle.year}
+                {vehicle.brand} {vehicle.model} · {vehicle.vehicle_type_name ?? vehicle.type ?? "—"} · {vehicle.year}
               </p>
             </div>
           </div>
