@@ -1,6 +1,7 @@
 
 
 import * as React from "react";
+import { apiGet } from "@/lib/api-client";
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import {
@@ -69,7 +70,7 @@ const mainNav: NavItem[] = [
   { label: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard, shortcut: "g d" },
   { label: "Véhicules", href: "/vehicles", icon: Truck, shortcut: "g v", dataTour: "sidebar-vehicles" },
   { label: "Documents", href: "/documents", icon: FileText, shortcut: "g D" },
-  { label: "Alertes", href: "/alerts", icon: Bell, badge: 12, shortcut: "g a" },
+  { label: "Alertes", href: "/alerts", icon: Bell, shortcut: "g a" },
   { label: "Exports", href: "/exports", icon: Download, shortcut: "g e" },
   { label: "Recherche", href: "/search", icon: Search },
 ];
@@ -86,6 +87,18 @@ const settingsNav: NavItem[] = [
 ];
 
 export function AppSidebar() {
+  const [alertCount, setAlertCount] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    const fetchCount = () => {
+      apiGet<{ active: number }>("/api/alerts/summary")
+        .then((d) => setAlertCount(d.active))
+        .catch(() => {});
+    };
+    fetchCount();
+    interval = setInterval(fetchCount, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
   const { pathname } = useLocation();
   const { user, company, logout } = useAuth();
   const { state, setOpen } = useSidebar();
@@ -146,6 +159,7 @@ export function AppSidebar() {
                   key={item.href}
                   item={item}
                   pathname={pathname}
+                  alertCount={alertCount}
                 />
               ))}
             </SidebarMenu>
@@ -183,6 +197,7 @@ export function AppSidebar() {
                   key={item.href}
                   item={item}
                   pathname={pathname}
+                  alertCount={alertCount}
                 />
               ))}
             </SidebarMenu>
@@ -298,9 +313,11 @@ export function AppSidebar() {
 function SidebarNavItem({
   item,
   pathname,
+  alertCount,
 }: {
   item: NavItem;
   pathname: string | null;
+  alertCount?: number | null;
 }) {
   const active =
     pathname === item.href ||
@@ -314,14 +331,21 @@ function SidebarNavItem({
         <Link to={item.href}>
           <item.icon className="size-4" />
           <span>{item.label}</span>
-          {item.badge !== undefined && (
+          {item.label === "Alertes" && alertCount !== null && alertCount !== undefined ? (
+            <Badge
+              variant="secondary"
+              className="ml-auto bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300"
+            >
+              {alertCount}
+            </Badge>
+          ) : item.badge !== undefined ? (
             <Badge
               variant="secondary"
               className="ml-auto bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300"
             >
               {item.badge}
             </Badge>
-          )}
+          ) : null}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>

@@ -8,6 +8,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { apiGet } from "@/lib/api-client";
 import {
   Tooltip,
   TooltipContent,
@@ -25,6 +26,17 @@ import {
 import { useCommandPalette } from "@/components/layout/command-palette";
 
 export function AppHeader() {
+  const [alertCount, setAlertCount] = React.useState(0);
+  React.useEffect(() => {
+    const fetchCount = () => {
+      apiGet<{ active: number }>("/api/alerts/summary")
+        .then((d) => setAlertCount(d.active))
+        .catch(() => {});
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
   const navigate = useNavigate();
   const { setOpen: setCommandOpen } = useCommandPalette();
   const [searchValue, setSearchValue] = React.useState("");
@@ -94,7 +106,7 @@ export function AppHeader() {
                 </Link>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>12 alertes actives</TooltipContent>
+            <TooltipContent>{alertCount} alertes actives</TooltipContent>
           </Tooltip>
         </TooltipProvider>
 

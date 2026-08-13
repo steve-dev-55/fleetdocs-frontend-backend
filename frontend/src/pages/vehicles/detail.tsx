@@ -24,8 +24,7 @@ import {
   OCR_STATUS,
   DOCUMENT_VALIDITY,
 } from "@/lib/status-config";
-import { apiGet } from "@/lib/api-client";
-import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation";
+import { apiGet, apiPost, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import {
   formatDate,
@@ -86,22 +85,27 @@ export default function VehicleDetailPage() {
       .catch(() => {});
   }, [vehicleId]);
 
-  // Optimistic status change
-  const { mutate: changeStatus, isPending: isChanging } = useOptimisticMutation<
-    Vehicle | null,
-    Vehicle["status"]
-  >({
-    getCurrent: () => vehicle,
-    applyOptimistic: (curr, status) =>
-      curr ? { ...curr, status, updated_at: new Date().toISOString() } : curr,
-    setState: setVehicle,
-    mutate: async (status) => {
-      await apiPutWrapper(`/api/vehicles/${vehicleId}`, { status });
+  // Status change via POST /api/vehicles/{id}/status
+  const [isChanging, setIsChanging] = React.useState(false);
+  const changeStatus = React.useCallback(
+    async (newStatus: Vehicle["status"]) => {
+      setIsChanging(true);
+      try {
+        await apiPost(`/api/vehicles/${vehicleId}/status`, {
+          status: newStatus,
+          comment: "Changement de statut",
+        });
+        const updated = await apiGet<Vehicle>(`/api/vehicles/${vehicleId}`);
+        setVehicle(updated);
+        appToast.success("Statut mis à jour");
+      } catch (err) {
+        appToast.error("Erreur", { description: getErrorMessage(err) });
+      } finally {
+        setIsChanging(false);
+      }
     },
-    showSuccessToast: true,
-    successMessage: "Statut mis à jour",
-    errorMessage: "Erreur lors du changement de statut",
-  });
+    [vehicleId]
+  );
 
   // Calcul des stats de conformité à partir des documents chargés
   const docStats = React.useMemo(() => {
@@ -266,7 +270,7 @@ export default function VehicleDetailPage() {
               </p>
               <div className="flex flex-wrap gap-1">
                 {(
-                  ["available", "in_service", "broken_down", "in_garage", "immobilized"] as const
+                  ["active", "maintenance", "out_of_service"] as const
                 ).map((s) => (
                   <Button
                     key={s}
@@ -412,9 +416,3 @@ export default function VehicleDetailPage() {
   );
 }
 
-// Wrapper to avoid direct apiPut import aliasing issue
-async function apiPutWrapper(path: string, body: unknown): Promise<unknown> {
-  // Use the centralized apiPut which includes JWT auth + API_URL prefix
-  const { apiPut } = await import("@/lib/api-client");
-  return apiPut(path, body);
-}

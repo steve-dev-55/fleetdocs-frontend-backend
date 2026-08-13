@@ -2,11 +2,10 @@ import * as React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Truck, FileText, Bell, SearchX, Loader2 } from "lucide-react";
-import { apiGet, type Paginated } from "@/lib/api-client";
+import { apiGet } from "@/lib/api-client";
 import {
   VEHICLE_STATUS,
   ALERT_TYPES,
-  OCR_STATUS,
 } from "@/lib/status-config";
 import type { Vehicle, FleetDocument, Alert } from "@/lib/types";
 
@@ -144,7 +143,7 @@ export default function SearchPage() {
                   </p>
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0">
-                  {OCR_STATUS[d.ocr_status].label}
+                  {"—"}
                 </span>
               </Link>
             ))}
@@ -184,4 +183,3 @@ export default function SearchPage() {
   );
 }
 
-export type { Paginated };
