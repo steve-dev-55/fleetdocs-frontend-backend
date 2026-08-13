@@ -1,50 +1,39 @@
-
-
-import * as React from "react";
+﻿import * as React from "react";
 import { AlertsTable } from "@/components/alerts/alerts-table";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiGet } from "@/lib/api-client";
 import { ALERT_SEVERITY } from "@/lib/status-config";
+import type { Alert } from "@/lib/types";
 import { useAlertEvents } from "@/hooks/use-alert-events";
 import { Bell, AlertTriangle, AlertCircle, Info } from "lucide-react";
 
 export default function AlertsPage() {
-  const [summary, setSummary] = React.useState<{
-    total: number;
-    active: number;
-    resolved: number;
-    by_severity: Record<string, number>;
-  }>({ total: 0, active: 0, resolved: 0, by_severity: {} });
+  const [activeAlerts, setActiveAlerts] = React.useState<Alert[]>([]);
 
-  const fetchSummary = React.useCallback(async () => {
+  const fetchAlerts = React.useCallback(async () => {
     try {
-      const data = await apiGet<{
-        total: number;
-        active: number;
-        resolved: number;
-        by_severity: Record<string, number>;
-      }>("/api/alerts/summary");
-      setSummary(data);
+      const data = await apiGet<Alert[] | { items: Alert[] }>(
+        "/api/alerts?status=active"
+      );
+      const items = Array.isArray(data) ? data : data.items;
+      setActiveAlerts(items);
     } catch {
-      // Keep previous data
+      setActiveAlerts([]);
     }
   }, []);
 
   React.useEffect(() => {
-    void fetchSummary();
-  }, [fetchSummary]);
+    void fetchAlerts();
+  }, [fetchAlerts]);
 
-  // Re-fetch summary when an alert is resolved / created elsewhere
   useAlertEvents(() => {
-    void fetchSummary();
+    void fetchAlerts();
   });
 
-  const critical = summary.by_severity?.["critical"] ?? 0;
-  const warning = summary.by_severity?.["warning"] ?? 0;
-  const info = summary.by_severity?.["info"] ?? 0;
-  const activeCount = summary.active ?? 0;
+  const critical = activeAlerts.filter((a) => a.severity === "critical").length;
+  const warning = activeAlerts.filter((a) => a.severity === "warning").length;
+  const info = activeAlerts.filter((a) => a.severity === "info").length;
 
-  // Avoid unused warning for ALERT_SEVERITY import (kept for future use)
   void ALERT_SEVERITY;
 
   return (
@@ -54,7 +43,7 @@ export default function AlertsPage() {
           Alertes
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {activeCount} alertes actives — traitez les documents expirés en priorité.
+          {activeAlerts.length} alertes actives — traitez les documents expirés en priorité.
         </p>
       </div>
 
@@ -96,7 +85,6 @@ export default function AlertsPage() {
 
       <AlertsTable />
 
-      {/* Avoid unused warning for Bell icon import */}
       <span className="hidden">
         <Bell />
       </span>
