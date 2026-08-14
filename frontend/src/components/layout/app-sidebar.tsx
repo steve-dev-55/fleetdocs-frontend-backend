@@ -77,11 +77,7 @@ const mainNav: NavItem[] = [
   { label: "Recherche", href: "/search", icon: Search },
 ];
 
-const adminNav: NavItem[] = [
-  { label: "Tableau de bord", href: "/admin", icon: LayoutDashboard, adminOnly: true },
-  { label: "Sociétés", href: "/admin/companies", icon: Building2, adminOnly: true },
-  { label: "Journal d'audit", href: "/admin/audit-logs", icon: ShieldCheck, adminOnly: true },
-  { label: "Expériences A/B", href: "/admin/experiments", icon: LayoutDashboard, adminOnly: true },
+const adminNav: NavItem[] = 
   { label: "Types de véhicules", href: "/admin/vehicle-types", icon: Truck, adminOnly: true },
   { label: "Types de documents", href: "/admin/document-types", icon: FileText, adminOnly: true },
 ];
