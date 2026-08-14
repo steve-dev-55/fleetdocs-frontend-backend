@@ -54,13 +54,32 @@ const VALIDITY_OPTIONS = [
   }))),
 ];
 
+interface DocumentTypeOption {
+  id: string;
+  name: string;
+  code: string;
+  label: string;
+}
+
 export function DocumentsTable() {
   const navigate = useNavigate();
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
-    const [validityFilter, setValidityFilter] = React.useState<string>("all");
+  const [validityFilter, setValidityFilter] = React.useState<string>("all");
+  const [docTypeFilter, setDocTypeFilter] = React.useState<string>("all");
+  const [docTypes, setDocTypes] = React.useState<DocumentTypeOption[]>([]);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [allDocuments, setAllDocuments] = React.useState<FleetDocument[]>([]);
+
+  // Fetch document types from API
+  React.useEffect(() => {
+    void apiGet<DocumentTypeOption[] | { items?: DocumentTypeOption[] }>("/api/document-types")
+      .then((data) => {
+        const items = Array.isArray(data) ? data : (data?.items ?? []);
+        setDocTypes(items.map((t) => ({ ...t, label: t.name })));
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch documents on mount
   React.useEffect(() => {
@@ -95,10 +114,11 @@ export function DocumentsTable() {
       ) {
         return false;
       }
-            if (validityFilter !== "all" && d.validity !== validityFilter) return false;
+      if (validityFilter !== "all" && d.validity !== validityFilter) return false;
+      if (docTypeFilter !== "all" && d.type_id !== docTypeFilter) return false;
       return true;
     });
-  }, [allDocuments, debouncedSearch, validityFilter]);
+  }, [allDocuments, debouncedSearch, validityFilter, docTypeFilter]);
 
   const allChecked =
     filtered.length > 0 && filtered.every((d) => selected.has(d.id));
@@ -204,7 +224,19 @@ export function DocumentsTable() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          
+          <Select value={docTypeFilter} onValueChange={setDocTypeFilter}>
+            <SelectTrigger className="w-[170px]">
+              <SelectValue placeholder="Type de document" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les types</SelectItem>
+              {docTypes.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={validityFilter} onValueChange={setValidityFilter}>
             <SelectTrigger className="w-[170px]">
               <SelectValue placeholder="Validité" />

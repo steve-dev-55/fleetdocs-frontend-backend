@@ -69,11 +69,13 @@ import {
   Truck,
 } from "lucide-react";
 
-const VEHICLE_TYPE_OPTIONS = [
-  { value: "all", label: "Tous les types" },
-  { value: "Fourgon", label: "Fourgon" },
-  { value: "Poids lourd", label: "Poids lourd" },
-];
+const AVAILABLE_STATUSES: VehicleStatus[] = ["active", "maintenance", "out_of_service"];
+
+interface VehicleTypeOption {
+  id: string;
+  name: string;
+  code: string;
+}
 
 const COMPLIANCE_OPTIONS = [
   { value: "all", label: "Toutes conformités" },
@@ -129,6 +131,17 @@ export function VehiclesTable() {
   const [saveViewOpen, setSaveViewOpen] = React.useState(false);
   const [newViewName, setNewViewName] = React.useState("");
   const [photoCache, setPhotoCache] = React.useState<Record<string, string>>({});
+  const [vehicleTypes, setVehicleTypes] = React.useState<VehicleTypeOption[]>([]);
+
+  // Fetch vehicle types from API
+  React.useEffect(() => {
+    void apiGet<VehicleTypeOption[] | { items?: VehicleTypeOption[] }>("/api/vehicle-types")
+      .then((data) => {
+        const items = Array.isArray(data) ? data : (data?.items ?? []);
+        setVehicleTypes(items);
+      })
+      .catch(() => {});
+  }, []);
 
   const { views, addView, removeView } = useSavedViews();
   const { isVisible, toggle, columns } = useColumnVisibility("vehicles", COLUMNS);
@@ -388,7 +401,7 @@ export function VehiclesTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les statuts</SelectItem>
-              {(Object.keys(VEHICLE_STATUS) as VehicleStatus[]).map((s) => (
+              {AVAILABLE_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
                   {VEHICLE_STATUS[s].label}
                 </SelectItem>
@@ -403,9 +416,10 @@ export function VehiclesTable() {
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
-              {VEHICLE_TYPE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
+              <SelectItem value="all">Tous les types</SelectItem>
+              {vehicleTypes.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
                 </SelectItem>
               ))}
             </SelectContent>
