@@ -82,6 +82,13 @@ const adminNav: NavItem[] = [
   { label: "Types de documents", href: "/admin/document-types", icon: FileText, adminOnly: true },
 ];
 
+// Routes réservées au super_admin uniquement (pas visible par admin)
+const superAdminNav: NavItem[] = [
+  { label: "Tableau de bord", href: "/admin", icon: LayoutDashboard, adminOnly: true },
+  { label: "Sociétés", href: "/admin/companies", icon: Building2, adminOnly: true },
+  { label: "Journal d'audit", href: "/admin/audit-logs", icon: ShieldCheck, adminOnly: true },
+];
+
 const settingsNav: NavItem[] = [
   { label: "Paramètres", href: "/settings", icon: Settings, shortcut: "g s" },
 ];
@@ -108,7 +115,8 @@ export function AppSidebar() {
   const { pathname } = useLocation();
   const { user, company, logout } = useAuth();
   const { state, setOpen } = useSidebar();
-  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isAdmin = user?.role === "admin";
+  const isSuperAdmin = user?.role === "super_admin";
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50 bg-surface/80 backdrop-blur-xl">
@@ -180,6 +188,26 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {adminNav.map((item) => (
+                    <SidebarNavItem
+                      key={item.href}
+                      item={item}
+                      pathname={pathname}
+                    />
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
+
+        {isSuperAdmin && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {superAdminNav.map((item) => (
                     <SidebarNavItem
                       key={item.href}
                       item={item}
