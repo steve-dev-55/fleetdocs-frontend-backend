@@ -24,7 +24,7 @@ import {
   OCR_STATUS,
   DOCUMENT_VALIDITY,
 } from "@/lib/status-config";
-import { apiGet, apiPost, getErrorMessage } from "@/lib/api-client";
+import { apiGet, apiPost, apiDelete, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import {
   formatDate,
@@ -47,6 +47,7 @@ import {
   Bell,
   Plus,
   QrCode,
+  Trash2,
 } from "lucide-react";
 import {
   Table,
@@ -183,6 +184,23 @@ export default function VehicleDetailPage() {
                 <Pencil className="size-4" />
                 Modifier
               </Link>
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!confirm(`Supprimer le véhicule ${vehicle.registration} ?`)) return;
+                void apiDelete(`/api/vehicles/${vehicle.id}`)
+                  .then(() => {
+                    appToast.success("Véhicule archivé");
+                    navigate("/vehicles");
+                  })
+                  .catch((err) => {
+                    appToast.error("Erreur", { description: getErrorMessage(err) });
+                  });
+              }}
+            >
+              <Trash2 className="size-4" />
+              Supprimer
             </Button>
           </div>
         </div>

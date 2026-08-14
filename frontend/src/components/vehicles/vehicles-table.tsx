@@ -49,7 +49,7 @@ import { VehicleStatusBadge } from "@/components/vehicles/vehicle-status-badge";
 import { ComplianceDot } from "@/components/vehicles/compliance-dot";
 import { VEHICLE_STATUS } from "@/lib/status-config";
 import { exportToCsv } from "@/lib/utils";
-import { apiGet, apiPost, getErrorMessage } from "@/lib/api-client";
+import { apiGet, apiPost, apiDelete, getErrorMessage } from "@/lib/api-client";
 import { appToast } from "@/lib/toast";
 import { useSavedViews, type SavedView } from "@/hooks/use-saved-views";
 import { useColumnVisibility, type ColumnDef } from "@/hooks/use-column-visibility";
@@ -263,32 +263,29 @@ export function VehiclesTable() {
     ]);
   };
 
-  // Optimistic archive (mock — uses undo pattern)
+  // Optimistic archive — calls DELETE api
   const { mutate: archiveVehicles, isPending: isArchiving } =
     useOptimisticMutation<Vehicle[], Set<string>>({
       getCurrent: () => vehicles,
       applyOptimistic: (curr, ids) => curr.filter((v) => !ids.has(v.id)),
       setState: setVehicles,
       mutate: async (ids) => {
-        await apiPost("/api/analytics/track", {
-          name: "vehicles.archive",
-          properties: { count: ids.size },
-        });
+        for (const id of Array.from(ids)) {
+          await apiDelete(`/api/vehicles/${id}`);
+        }
       },
+      successMessage: "Véhicule(s) archivé(s)",
+      showSuccessToast: true,
     });
 
   const handleArchive = () => {
     const ids = new Set(selected);
     if (ids.size === 0) return;
-    void archiveVehicles(ids);
-    appToast.withUndo(
-      `${ids.size} véhicule(s) archivé(s)`,
-      () => {
-        // Undo: refetch
+    void archiveVehicles(ids).then((res) => {
+      if (res.success) {
         void fetchVehicles();
-      },
-      { description: "Cliquez sur Annuler pour restaurer." }
-    );
+      }
+    });
     setSelected(new Set());
   };
 
