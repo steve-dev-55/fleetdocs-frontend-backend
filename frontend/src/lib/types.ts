@@ -64,6 +64,7 @@ export interface Vehicle {
   site?: string;
   driver?: string;
   compliance?: ComplianceLevel;
+  compliance_rate?: number | null;
   compliance_detail?: {
     valid: number;
     expiring: number;

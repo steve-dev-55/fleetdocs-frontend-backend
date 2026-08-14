@@ -599,7 +599,15 @@ export function VehiclesTable() {
                       {isVisible("compliance") && (
                         <TableCell>
                           <ComplianceDot
-                            level={v.compliance ?? "green"}
+                            level={
+                              v.compliance_rate === null || v.compliance_rate === undefined
+                                ? "green"
+                                : v.compliance_rate >= 80
+                                ? "green"
+                                : v.compliance_rate >= 50
+                                ? "orange"
+                                : "red"
+                            }
                             detail={v.compliance_detail}
                           />
                         </TableCell>

@@ -102,7 +102,7 @@ export default function DashboardPage() {
           compliance_rate:
             d?.compliance_rate ?? kpis.compliance_rate ?? 0,
           active_alerts: d?.active_alerts ?? kpis.active_alerts ?? 0,
-          pending_ocr: d?.pending_ocr ?? kpis.pending_ocr ?? 0,
+          pending_ocr: (d as any)?.expired_documents ?? (kpis as any)?.expired_documents ?? d?.pending_ocr ?? kpis.pending_ocr ?? 0,
           documents_count:
             d?.documents_count ?? kpis.total_documents ?? 0,
           status_distribution: statusDistribution,
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 100
             ),
             active_alerts: activeAlerts.length,
-            pending_ocr: 0,
+            pending_ocr: (safeAlerts as any[]).filter(a => a?.severity === "critical" && a?.status === "active").length,
             documents_count: 0,
             status_distribution: Object.entries(statusCounts).map(
               ([status, count]) => ({ status: status as any, count })

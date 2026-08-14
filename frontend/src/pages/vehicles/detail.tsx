@@ -83,7 +83,7 @@ export default function VehicleDetailPage() {
         setAlerts(items.filter((a) => a.vehicle_id === vehicleId));
       })
       .catch(() => {});
-  }, [vehicleId]);
+  }, [vehicleId, refreshDocs]);
 
   // Status change via POST /api/vehicles/{id}/status
   const [isChanging, setIsChanging] = React.useState(false);
