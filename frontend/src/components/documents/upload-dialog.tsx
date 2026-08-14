@@ -17,12 +17,14 @@ interface UploadDialogProps {
   trigger?: React.ReactNode;
   defaultVehicleId?: string;
   defaultDocumentTypeId?: string;
+  onUploadSuccess?: () => void;
 }
 
 export function UploadDialog({
   trigger,
   defaultVehicleId,
   defaultDocumentTypeId,
+  onUploadSuccess,
 }: UploadDialogProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -47,6 +49,10 @@ export function UploadDialog({
         <UploadDropzone
           vehicleId={defaultVehicleId}
           documentTypeId={defaultDocumentTypeId}
+          onUploaded={() => {
+            onUploadSuccess?.();
+            setOpen(false);
+          }}
           onClose={() => setOpen(false)}
         />
       </DialogContent>

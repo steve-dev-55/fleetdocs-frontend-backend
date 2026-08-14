@@ -1,5 +1,3 @@
-
-
 import * as React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -67,6 +65,7 @@ export default function VehicleDetailPage() {
   const [docs, setDocs] = React.useState<FleetDocument[]>([]);
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
   const [qrOpen, setQrOpen] = React.useState(false);
+  const [refreshDocs, setRefreshDocs] = React.useState(0);
 
   React.useEffect(() => {
     if (!vehicleId) return;
@@ -119,6 +118,13 @@ export default function VehicleDetailPage() {
     return { valid, expiring, expired, total };
   }, [docs]);
 
+  // Déterminer le niveau de conformité basé sur les stats des documents
+  const complianceLevel = React.useMemo(() => {
+    if (docStats.expired > 0) return "red";
+    if (docStats.expiring > 0) return "orange";
+    return "green";
+  }, [docStats]);
+
   if (!vehicle) {
     return (
       <div className="text-center py-12 text-muted-foreground">Chargement...</div>
@@ -164,7 +170,7 @@ export default function VehicleDetailPage() {
                   {vehicle.registration}
                 </h1>
                 <ComplianceDot
-                  level={vehicle.compliance ?? "green"}
+                  level={complianceLevel}
                   detail={vehicle.compliance_detail}
                 />
                 <VehicleStatusBadge status={vehicle.status} />
@@ -322,6 +328,7 @@ export default function VehicleDetailPage() {
               <CardAction>
                 <UploadDialog
                   defaultVehicleId={vehicleId}
+                  onUploadSuccess={() => setRefreshDocs((prev) => prev + 1)}
                   trigger={
                     <Button size="sm">
                       <Plus className="size-4" />
@@ -442,4 +449,3 @@ export default function VehicleDetailPage() {
     </div>
   );
 }
-
