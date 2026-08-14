@@ -263,7 +263,7 @@ export function VehiclesTable() {
     ]);
   };
 
-  // Optimistic archive — calls DELETE api
+  // Optimistic archive — calls DELETE api (archive d'abord, puis suppression définitive)
   const { mutate: archiveVehicles, isPending: isArchiving } =
     useOptimisticMutation<Vehicle[], Set<string>>({
       getCurrent: () => vehicles,
@@ -274,7 +274,7 @@ export function VehiclesTable() {
           await apiDelete(`/api/vehicles/${id}`);
         }
       },
-      successMessage: "Véhicule(s) archivé(s)",
+      successMessage: "Opération terminée",
       showSuccessToast: true,
     });
 

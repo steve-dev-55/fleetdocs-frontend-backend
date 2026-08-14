@@ -26,6 +26,7 @@ from app.models import (
     Vehicle,
     VehicleStatus,
     VehicleStatusHistory,
+    VehicleType,
 )
 from app.schemas import (
     DocumentResponse,
@@ -295,7 +296,7 @@ async def update_vehicle(
 
 
 # ---------------------------------------------------------------------------
-# Suppression (archivage)
+# Suppression (archive d'abord, puis suppression physique)
 # ---------------------------------------------------------------------------
 
 
@@ -305,23 +306,59 @@ async def delete_vehicle(
     company: Company = Depends(get_current_company),
     db: AsyncSession = Depends(get_db),
 ):
-    """Archive un véhicule (suppression logique)."""
-    vehicle = await _get_vehicle_or_404(db, vehicle_id, company.id)
+    """Supprime un véhicule.
 
-    if vehicle.status == VehicleStatus.archived:
-        return {"message": "Véhicule déjà archivé."}
-
-    history = VehicleStatusHistory(
-        vehicle_id=vehicle.id,
-        old_status=vehicle.status,
-        new_status=VehicleStatus.archived,
-        comment="Véhicule archivé",
+    Comportement en 2 étapes :
+    1. Si le véhicule n'est pas encore archivé → on l'archive (suppression logique).
+    2. Si le véhicule est déjà archivé → on le supprime physiquement (avec ses
+       documents, alertes, historique, commentaires et liens de partage via CASCADE).
+    """
+    # Vérifie que le véhicule existe et appartient à la société
+    result = await db.execute(
+        select(Vehicle)
+        .options(
+            selectinload(Vehicle.documents),
+            selectinload(Vehicle.status_history),
+            selectinload(Vehicle.alerts),
+        )
+        .where(Vehicle.id == vehicle_id, Vehicle.company_id == company.id)
     )
-    db.add(history)
+    vehicle = result.scalar_one_or_none()
+    if not vehicle:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Véhicule introuvable.",
+        )
 
-    vehicle.status = VehicleStatus.archived
+    # Étape 1 : archive si pas encore archivé
+    if vehicle.status != VehicleStatus.archived:
+        history = VehicleStatusHistory(
+            vehicle_id=vehicle.id,
+            old_status=vehicle.status,
+            new_status=VehicleStatus.archived,
+            comment="Véhicule archivé",
+        )
+        db.add(history)
+        vehicle.status = VehicleStatus.archived
+        await db.commit()
+        return {"message": "Véhicule archivé avec succès.", "archived": True}
+
+    # Étape 2 : suppression physique (les relations sont supprimées via CASCADE)
+    # Supprime les fichiers physiques des documents
+    for doc in vehicle.documents:
+        if doc.file_url:
+            filename = doc.file_url.split("/uploads/")[-1]
+            filepath = os.path.join(settings.UPLOAD_DIR, filename)
+            if os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                except OSError:
+                    pass
+
+    # Supprime le véhicule (les relations DB cascade suppriment docs, alertes, etc.)
+    await db.delete(vehicle)
     await db.commit()
-    return {"message": "Véhicule archivé avec succès."}
+    return {"message": "Véhicule supprimé définitivement.", "deleted": True}
 
 
 # ---------------------------------------------------------------------------

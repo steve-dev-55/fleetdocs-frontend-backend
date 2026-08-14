@@ -188,10 +188,18 @@ export default function VehicleDetailPage() {
             <Button
               variant="destructive"
               onClick={() => {
-                if (!confirm(`Supprimer le véhicule ${vehicle.registration} ?`)) return;
+                const msg =
+                  vehicle.status === "archived"
+                    ? `Supprimer définitivement le véhicule ${vehicle.registration} ? Cette action est irréversible.`
+                    : `Archiver le véhicule ${vehicle.registration} ?`;
+                if (!confirm(msg)) return;
                 void apiDelete(`/api/vehicles/${vehicle.id}`)
-                  .then(() => {
-                    appToast.success("Véhicule archivé");
+                  .then((res: any) => {
+                    if (res?.deleted) {
+                      appToast.success("Véhicule supprimé définitivement");
+                    } else {
+                      appToast.success("Véhicule archivé");
+                    }
                     navigate("/vehicles");
                   })
                   .catch((err) => {
@@ -200,7 +208,7 @@ export default function VehicleDetailPage() {
               }}
             >
               <Trash2 className="size-4" />
-              Supprimer
+              {vehicle.status === "archived" ? "Supprimer" : "Archiver"}
             </Button>
           </div>
         </div>
