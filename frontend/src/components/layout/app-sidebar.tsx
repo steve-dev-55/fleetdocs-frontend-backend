@@ -77,7 +77,7 @@ const mainNav: NavItem[] = [
   { label: "Recherche", href: "/search", icon: Search },
 ];
 
-const adminNav: NavItem[] = 
+const adminNav: NavItem[] = [
   { label: "Types de véhicules", href: "/admin/vehicle-types", icon: Truck, adminOnly: true },
   { label: "Types de documents", href: "/admin/document-types", icon: FileText, adminOnly: true },
 ];
